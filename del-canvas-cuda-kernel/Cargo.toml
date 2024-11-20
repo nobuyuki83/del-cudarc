@@ -1,0 +1,18 @@
+[package]
+name = "del-canvas-cuda-kernel"
+description = "hogehoge"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+num-traits.workspace = true
+anyhow.workspace = true
+slice-of-array.workspace = true
+cudarc.workspace = true
+del-msh-core.workspace = true
+del-geo-core.workspace = true
+del-canvas-cpu.workspace = true
+
+[build-dependencies]
+bindgen_cuda.workspace = true
