@@ -16,7 +16,9 @@ del-geo-core.workspace = true
 del-gl-core.workspace = true
 del-canvas-cpu.workspace = true
 del-canvas-image.workspace = true
-del-canvas-cuda-kernel.workspace = true
+kernel-splat.workspace = true
+kernel-bvh.workspace = true
+kernel-util.workspace = true
 
 [build-dependencies]
 bindgen_cuda.workspace = true

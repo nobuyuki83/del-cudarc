@@ -4,7 +4,9 @@ members = [
     "del-fem-cudarc-kernel",
     "del-canvas-cuda",
     "del-canvas-cuda-gl",
-    "del-canvas-cuda-kernel"
+    "kernel-splat",
+    "kernel-util",
+    "kernel-bvh"
 ]
 resolver = "2"
 
@@ -16,7 +18,9 @@ license = "MIT"
 
 [workspace.dependencies.cudarc]
 version = "*"
-features = ["std", "cublas", "cublaslt", "curand", "driver", "nvrtc", "f16", "cuda-version-from-build-system", "dynamic-linking"]
+features = [
+    "std", "cublas", "cublaslt", "curand", "driver", "nvrtc",
+    "f16", "cuda-version-from-build-system", "dynamic-linking"]
 default-features=false
 
 [workspace.dependencies]
@@ -38,7 +42,9 @@ cfg_aliases = "0.2.1"
 bindgen_cuda = "0.1.5"
 
 # internal
-del-canvas-cuda-kernel = { path = "del-canvas-cuda-kernel" }
+kernel-splat = { path = "kernel-splat" }
+kernel-util = { path = "kernel-util" }
+kernel-bvh = { path = "kernel-bvh" }
 del-canvas-cuda = { path = "del-canvas-cuda" }
 del-fem-cudarc-kernel = { path = "del-fem-cudarc-kernel" }
 

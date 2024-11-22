@@ -14,7 +14,7 @@ pub struct Content {
 
 impl del_gl_winit_glutin::app3::Content for Content {
     fn new() -> Self {
-        let file_path = "../asset/dog.ply";
+        let file_path = "asset/dog.ply";
         //let file_path = "C:/Users/nobuy/Downloads/ChilliPepperPlant.ply"; //"asset/dog.ply";
         //let file_path = "C:/Users/nobuy/Downloads/bread.ply"; //"asset/dog.ply";
         //let file_path = "C:/Users/nobuy/Downloads/PumpkinTree.ply"; //"asset/dog.ply";

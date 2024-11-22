@@ -3,7 +3,7 @@ use cudarc::driver::LaunchAsync;
 fn main() -> anyhow::Result<()> {
     let (tri2vtx, vtx2xyz, _vtx2uv) = {
         let mut obj = del_msh_core::io_obj::WavefrontObj::<u32, f32>::new();
-        obj.load("../asset/spot_triangulated.obj")?;
+        obj.load("asset/spot/spot_triangulated.obj")?;
         obj.unified_xyz_uv_as_trimesh()
     };
     let bvhnodes = del_msh_core::bvhnodes_morton::from_triangle_mesh(&tri2vtx, &vtx2xyz, 3);
@@ -35,7 +35,7 @@ fn main() -> anyhow::Result<()> {
     //
     let dev = cudarc::driver::CudaDevice::new(0)?;
     dev.load_ptx(
-        del_canvas_cuda_kernel::PIX2TRI.into(),
+        kernel_bvh::PIX2TRI.into(),
         "my_module",
         &["pix_to_tri"],
     )?;
@@ -77,7 +77,7 @@ fn main() -> anyhow::Result<()> {
         .map(|v| if *v == u32::MAX { 0f32 } else { 1f32 })
         .collect();
     del_canvas_image::write_png_from_float_image_grayscale(
-        "../target/raycast_trimesh3_cuda.png",
+        "target/raycast_trimesh3_silhouette.png",
         &img_size,
         &pix2flag,
     )?;

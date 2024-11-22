@@ -23,8 +23,9 @@ del-gl-winit-glutin.workspace = true
 del-raycast-core.workspace = true
 del-canvas-image.workspace = true
 del-canvas-cpu.workspace = true
-del-canvas-cuda-kernel.workspace = true
 del-canvas-cuda.workspace = true
+kernel-splat.workspace = true
+kernel-bvh.workspace = true
 
 [build-dependencies]
 gl_generator.workspace = true
