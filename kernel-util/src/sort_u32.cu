@@ -33,8 +33,8 @@ __global__ void gpu_radix_sort_local(
     extern __shared__ unsigned int shmem[];
     unsigned int* s_data = shmem;
     // s_mask_out[] will be scanned in place
-    unsigned int s_mask_out_len = max_elems_per_block + 1;
     unsigned int* s_mask_out = &s_data[max_elems_per_block];
+    unsigned int s_mask_out_len = max_elems_per_block + 1;
     unsigned int* s_merged_scan_mask_out = &s_mask_out[s_mask_out_len];
     unsigned int* s_mask_out_sums = &s_merged_scan_mask_out[max_elems_per_block];
     unsigned int* s_scan_mask_out_sums = &s_mask_out_sums[4];

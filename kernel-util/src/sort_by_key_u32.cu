@@ -3,11 +3,11 @@
 extern "C" {
 
 __global__ void gpu_radix_sort_local(
-    uint64_t* d_out_sorted,
+    uint32_t* d_out_sorted,
     uint32_t* d_prefix_sums,
     uint32_t* d_block_sums,
     unsigned int input_shift_width,
-    uint64_t* d_in,
+    uint32_t* d_in,
     unsigned int d_in_len,
     unsigned int max_elems_per_block,
     const uint32_t* d_in_index,
@@ -33,9 +33,9 @@ __global__ void gpu_radix_sort_local(
     // copy local prefix sum array back to global memory
 
     extern __shared__ unsigned int shmem[];
-    uint64_t* s_data = (uint64_t*)shmem;
+    uint32_t* s_data = (uint32_t*)shmem;
     // s_mask_out[] will be scanned in place
-    unsigned int* s_mask_out = &shmem[max_elems_per_block*2];
+    unsigned int* s_mask_out = &shmem[max_elems_per_block];
     unsigned int s_mask_out_len = max_elems_per_block + 1;
     unsigned int* s_merged_scan_mask_out = &s_mask_out[s_mask_out_len];
     unsigned int* s_mask_out_sums = &s_merged_scan_mask_out[max_elems_per_block];
@@ -56,7 +56,7 @@ __global__ void gpu_radix_sort_local(
     //  to the right until the correct 2 bits are in the 2 LSBs,
     //  then mask on the number with 11 (3) to remove the bits
     //  on the left
-    const uint64_t t_data = s_data[thid];
+    const uint32_t t_data = s_data[thid];
     unsigned int t_2bit_extract = (t_data >> input_shift_width) & 3;
 
     for (unsigned int i = 0; i < 4; ++i)
@@ -158,8 +158,8 @@ __global__ void gpu_radix_sort_local(
 }
 
 __global__ void gpu_glbl_shuffle(
-    uint64_t* d_out,
-    const uint64_t* d_in,
+    uint32_t* d_out,
+    const uint32_t* d_in,
     const unsigned int* d_scan_block_sums,
     const unsigned int* d_prefix_sums,
     unsigned int input_shift_width,
@@ -179,7 +179,7 @@ __global__ void gpu_glbl_shuffle(
 
     if (cpy_idx < d_in_len)
     {
-        uint64_t t_data = d_in[cpy_idx];
+        uint32_t t_data = d_in[cpy_idx];
         unsigned int t_2bit_extract = (t_data >> input_shift_width) & 3;
         unsigned int t_prefix_sum = d_prefix_sums[cpy_idx];
         unsigned int data_glbl_pos = d_scan_block_sums[t_2bit_extract * gridDim.x + blockIdx.x]

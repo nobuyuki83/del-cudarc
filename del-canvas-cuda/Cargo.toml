@@ -16,6 +16,7 @@ del-geo-core.workspace = true
 del-gl-core.workspace = true
 del-canvas-cpu.workspace = true
 del-canvas-image.workspace = true
+del-cudarc-util.workspace = true
 kernel-splat.workspace = true
 kernel-bvh.workspace = true
 kernel-util.workspace = true

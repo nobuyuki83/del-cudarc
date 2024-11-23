@@ -1,0 +1,12 @@
+[package]
+name = "del-cudarc-util"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+cudarc.workspace = true
+anyhow.workspace = true
+rand.workspace = true
+rand_chacha.workspace = true
+kernel-util.workspace = true

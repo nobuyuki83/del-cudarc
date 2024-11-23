@@ -6,8 +6,8 @@ members = [
     "del-canvas-cuda-gl",
     "kernel-splat",
     "kernel-util",
-    "kernel-bvh"
-]
+    "kernel-bvh",
+    "del-cudarc-util"]
 resolver = "2"
 
 [workspace.package]
@@ -47,6 +47,7 @@ kernel-util = { path = "kernel-util" }
 kernel-bvh = { path = "kernel-bvh" }
 del-canvas-cuda = { path = "del-canvas-cuda" }
 del-fem-cudarc-kernel = { path = "del-fem-cudarc-kernel" }
+del-cudarc-util = {path = "del-cudarc-util"}
 
 # workspace
 del-msh-core = { path = "../del-msh/del-msh-core" }
