@@ -12,7 +12,6 @@ fn main() -> anyhow::Result<()> {
     let vtx2xyz_dev = dev.htod_copy(vtx2xyz.clone())?;
     // -----------
     let bvhnodes = del_msh_core::bvhnodes_morton::from_triangle_mesh(&tri2vtx, &vtx2xyz, 3);
-    let bvhnodes_dev = dev.htod_copy(bvhnodes.clone())?;
     {
         let num_tri = tri2vtx.len() / 3;
         let mut tri2cntr_dev = dev.alloc_zeros::<f32>(num_tri * 3)?;
@@ -56,18 +55,58 @@ fn main() -> anyhow::Result<()> {
             &transform_cntr2uni_dev,
             &mut tri2morton_dev,
         )?;
-        let tri2morton_hst = dev.dtoh_sync_copy(&tri2morton_dev)?;
-        for i in 0..tri2morton.len() {
-            assert_eq!(
-                tri2morton_hst[i], tri2morton[i],
-                "{} {}",
-                tri2morton_hst[i], tri2morton[i]
-            );
+        {
+            let tri2morton_hst = dev.dtoh_sync_copy(&tri2morton_dev)?;
+            assert_eq!(tri2morton_hst.len(), num_tri);
+            for i in 0..tri2morton.len() {
+                assert_eq!(
+                    tri2morton_hst[i], tri2morton[i],
+                    "{} {}",
+                    tri2morton_hst[i], tri2morton[i]
+                );
+            }
         }
         let mut idx2tri_dev = dev.alloc_zeros(num_tri)?;
-        del_cudarc_util::sort_by_key_u64::set_consecutive_sequence(&dev, &mut idx2tri_dev)?;
-        // del_canvas_cuda::sort_by_key_u64::radix_sort_by_key_u64(&dev, &mut tri2morton_dev, &mut idx2tri_dev);
+        del_cudarc_util::util::set_consecutive_sequence(&dev, &mut idx2tri_dev)?;
+        del_cudarc_util::sort_by_key_u32::radix_sort_by_key_u32(
+            &dev,
+            &mut tri2morton_dev,
+            &mut idx2tri_dev,
+        )?;
+        {
+            let idx2tri_hst = dev.dtoh_sync_copy(&idx2tri_dev)?;
+            assert_eq!(idx2tri.len(), idx2tri_hst.len());
+            for i in 0..idx2tri_hst.len() {
+                assert_eq!(idx2tri_hst[i], idx2tri[i] as u32);
+            }
+        }
+        //let mut idx2morton_dev = dev.alloc_zeros(num_tri)?;
+        //del_cudarc_util::util::permute(&dev, &mut idx2morton_dev, &idx2tri_dev, &tri2morton_dev)?;
+        let idx2morton_dev = tri2morton_dev;
+        {
+            let idx2morton_hst = dev.dtoh_sync_copy(&idx2morton_dev)?;
+            for i in 0..idx2morton_hst.len() {
+                // assert_eq!(idx2morton[i], idx2morton_hst[i] as u32);
+                assert_eq!(
+                    idx2morton[i], idx2morton_hst[i],
+                    "{} {}",
+                    idx2morton[i], idx2morton_hst[i]
+                );
+            }
+        }
+        let mut bvhnodes_dev = dev.alloc_zeros(num_tri * 2 - 1)?;
+        del_canvas_cuda::bvh::bvhnodes(&dev, &mut bvhnodes_dev, &idx2morton_dev, &idx2tri_dev)?;
+        {
+            let bvhnodes_hst = dev.dtoh_sync_copy(&bvhnodes_dev)?;
+            for i in 0..bvhnodes_hst.len() {
+                // assert_eq!(bvhnodes_hst[i], bvhnodes[i], "{} {} {}", i, bvhnodes[i], bvhnodes_hst[i]);
+                if bvhnodes_hst[i] != bvhnodes[i] {
+                    println!("{} {} {}", i, bvhnodes[i], bvhnodes_hst[i]);
+                }
+            }
+        }
     }
+    let bvhnodes_dev = dev.htod_copy(bvhnodes.clone())?;
     // ------------
     let bvhnode2aabb = del_msh_core::bvhnode2aabb3::from_uniform_mesh_with_bvh(
         0,

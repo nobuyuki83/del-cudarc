@@ -10,4 +10,19 @@ void gpu_set_consecutive_sequence(
     d_out[i_d_out] = i_d_out;
 }
 
+__global__
+void permute(
+    unsigned int n,
+    uint32_t* new2data,
+    const uint32_t* new2old,
+    const uint32_t* old2data)
+{
+    int i_new = blockDim.x * blockIdx.x + threadIdx.x;
+    if( i_new >= n ){ return; }
+    //
+    int i_old = new2old[i_new];
+    assert(i_new < n);
+    new2data[i_new] = old2data[i_old];
+}
+
 }

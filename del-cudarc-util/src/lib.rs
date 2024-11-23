@@ -1,8 +1,9 @@
-pub mod sort_by_key_u32;
 pub mod cumsum;
+pub mod sort_by_key_u32;
 pub mod sort_by_key_u64;
 pub mod sort_u32;
 pub mod sort_u64;
+pub mod util;
 
 pub fn get_or_load_func(
     dev: &std::sync::Arc<cudarc::driver::CudaDevice>,

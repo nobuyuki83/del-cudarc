@@ -176,8 +176,11 @@ pub fn tile2idx_idx2pnt(
             16u32,
         );
         use cudarc::driver::LaunchAsync;
-        let count_splat_in_tile =
-            del_cudarc_util::get_or_load_func(&dev, "count_splat_in_tile", kernel_splat::SPLAT_GAUSS)?;
+        let count_splat_in_tile = del_cudarc_util::get_or_load_func(
+            &dev,
+            "count_splat_in_tile",
+            kernel_splat::SPLAT_GAUSS,
+        )?;
         unsafe { count_splat_in_tile.launch(cfg, param) }?;
         (tile2idx_dev, pnt2idx_dev)
     };

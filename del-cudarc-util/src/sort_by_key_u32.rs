@@ -1,20 +1,5 @@
 use cudarc::driver::{CudaDevice, CudaSlice, DeviceSlice};
 
-pub fn set_consecutive_sequence(
-    dev: &std::sync::Arc<CudaDevice>,
-    d_in: &mut CudaSlice<u32>,
-) -> anyhow::Result<()> {
-    let num_d_in = d_in.len() as u32;
-    let cfg = cudarc::driver::LaunchConfig::for_num_elems(num_d_in);
-    let param = (d_in, num_d_in);
-    use cudarc::driver::LaunchAsync;
-    let gpu_set_consecutive_sequence = dev
-        .get_func("util", "gpu_set_consecutive_sequence")
-        .unwrap();
-    unsafe { gpu_set_consecutive_sequence.launch(cfg, param) }?;
-    Ok(())
-}
-
 // An attempt at the gpu radix sort variant described in this paper:
 // https://vgc.poly.edu/~csilva/papers/cgf.pdf
 pub fn radix_sort_by_key_u32(
@@ -208,8 +193,13 @@ fn test_u32() -> anyhow::Result<()> {
         });
         let idxout = dev.dtoh_sync_copy(&idxin_dev)?;
         for jdx in 1..idxout.len() {
-            assert!(vin[idxout[jdx - 1] as usize] <= vin[idxout[jdx] as usize],
-                    "{} {} {}", n, 1024*1024-1, jdx);
+            assert!(
+                vin[idxout[jdx - 1] as usize] <= vin[idxout[jdx] as usize],
+                "{} {} {}",
+                n,
+                1024 * 1024 - 1,
+                jdx
+            );
         }
         let mut idxout0 = idxin.clone();
         idxout0.sort_by(|&a, &b| vin[a as usize].cmp(&vin[b as usize]));
