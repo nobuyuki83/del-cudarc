@@ -1,7 +1,7 @@
 [package]
-name = "del-canvas-cuda"
+name = "del-canvas-cuda-gl"
 description = "hogehoge"
-version.workspace = true
+version.workspace =true
 edition.workspace = true
 license.workspace = true
 
@@ -10,18 +10,27 @@ anyhow.workspace = true
 num-traits.workspace = true
 slice-of-array.workspace = true
 itertools.workspace = true
+glutin.workspace = true
+glutin-winit.workspace = true
+winit.workspace = true
+raw-window-handle.workspace = true
+image.workspace = true
 cudarc.workspace = true
 del-msh-core.workspace = true
 del-geo-core.workspace = true
 del-gl-core.workspace = true
-del-canvas-cpu.workspace = true
+del-gl-winit-glutin.workspace = true
+del-raycast-core.workspace = true
 del-canvas-image.workspace = true
-del-cudarc-util.workspace = true
+del-canvas-cpu.workspace = true
+del-cudarc-splat.workspace = true
+del-cudarc-bvh.workspace = true
 kernel-splat.workspace = true
 kernel-bvh.workspace = true
-kernel-util.workspace = true
 
 [build-dependencies]
+gl_generator.workspace = true
+cfg_aliases.workspace = true
 bindgen_cuda.workspace = true
 
 [dev-dependencies]

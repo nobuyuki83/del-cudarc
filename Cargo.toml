@@ -2,12 +2,13 @@
 members = [
     "del-fem-cudarc",
     "del-fem-cudarc-kernel",
-    "del-canvas-cuda",
-    "del-canvas-cuda-gl",
+    "del-cudarc-splat",
+    "del-cudarc-util",
+    "del-cudarc-bvh",
+    "demos-gl",
     "kernel-splat",
     "kernel-util",
-    "kernel-bvh",
-    "del-cudarc-util"]
+    "kernel-bvh"]
 resolver = "2"
 
 [workspace.package]
@@ -45,9 +46,10 @@ bindgen_cuda = "0.1.5"
 kernel-splat = { path = "kernel-splat" }
 kernel-util = { path = "kernel-util" }
 kernel-bvh = { path = "kernel-bvh" }
-del-canvas-cuda = { path = "del-canvas-cuda" }
+del-cudarc-splat = { path = "del-cudarc-splat" }
 del-fem-cudarc-kernel = { path = "del-fem-cudarc-kernel" }
 del-cudarc-util = {path = "del-cudarc-util"}
+del-cudarc-bvh = { path = "del-cudarc-bvh"}
 
 # workspace
 del-msh-core = { path = "../del-msh/del-msh-core" }

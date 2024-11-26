@@ -28,7 +28,7 @@ fn assert_equal_cpu_gpu(
     let tri2vtx_dev = dev.htod_copy(tri2vtx.clone())?;
     let vtx2xyz_dev = dev.htod_copy(vtx2xyz.clone())?;
     let mut tri2cntr_dev = dev.alloc_zeros::<f32>(num_tri * 3)?;
-    del_canvas_cuda::bvh::tri2cntr_from_trimesh3(
+    del_cudarc_bvh::bvh::tri2cntr_from_trimesh3(
         &dev,
         &tri2vtx_dev,
         &vtx2xyz_dev,
@@ -43,7 +43,7 @@ fn assert_equal_cpu_gpu(
             assert_eq!(tri2cntr[i], tri2cntr_hst[i], "{}", diff);
         }
     }
-    let aabb_dev = del_canvas_cuda::bvh::aabb3_from_vtx2xyz(&dev, &tri2cntr_dev)?;
+    let aabb_dev = del_cudarc_bvh::bvh::aabb3_from_vtx2xyz(&dev, &tri2cntr_dev)?;
     {
         let aabb_hst = dev.dtoh_sync_copy(&aabb_dev)?;
         assert_eq!(aabb_hst.len(),6);
@@ -54,7 +54,7 @@ fn assert_equal_cpu_gpu(
     // get aabb
     let mut tri2morton_dev = dev.alloc_zeros(num_tri)?;
     let transform_cntr2uni_dev = dev.htod_copy(transform_cntr2uni.to_vec())?;
-    del_canvas_cuda::bvh::vtx2morton(
+    del_cudarc_bvh::bvh::vtx2morton(
         &dev,
         &tri2cntr_dev,
         &transform_cntr2uni_dev,
@@ -100,7 +100,7 @@ fn assert_equal_cpu_gpu(
         }
     }
     let mut bvhnodes_dev = dev.alloc_zeros((num_tri * 2 - 1)*3)?;
-    del_canvas_cuda::bvh::bvhnodes_from_sorted_morton_codes(&dev, &mut bvhnodes_dev, &idx2morton_dev, &idx2tri_dev)?;
+    del_cudarc_bvh::bvh::bvhnodes_from_sorted_morton_codes(&dev, &mut bvhnodes_dev, &idx2morton_dev, &idx2tri_dev)?;
     {
         let bvhnodes_hst = dev.dtoh_sync_copy(&bvhnodes_dev)?;
         for i in 0..bvhnodes_hst.len() {
@@ -118,7 +118,7 @@ fn assert_equal_cpu_gpu(
         None,
     );
     let mut bvhnode2aabb_dev = dev.alloc_zeros::<f32>(bvhnodes_dev.len() / 3 * 6)?;
-    del_canvas_cuda::bvh::bvhnode2aabb_from_trimesh_with_bvhnodes(
+    del_cudarc_bvh::bvh::bvhnode2aabb_from_trimesh_with_bvhnodes(
         &dev,
         &tri2vtx_dev,
         &vtx2xyz_dev,
