@@ -93,7 +93,10 @@ pub fn aabb3_from_vtx2xyz(
             shared_mem_bytes: 0,
         }
     };
-    let aabb = dev.alloc_zeros::<f32>(6)?;
+
+    let aabb = dev.htod_copy(vec![
+        f32::MAX, f32::MAX, f32::MAX,
+        f32::MIN, f32::MIN, f32::MIN])?;
     let param = (&aabb, vtx2xyz, num_vtx);
     let func = del_cudarc_util::get_or_load_func(
         dev,

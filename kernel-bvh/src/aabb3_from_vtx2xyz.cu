@@ -36,16 +36,18 @@ void kernel_MinMax_TPB256(
 {
   const unsigned int idx = blockDim.x * blockIdx.x + threadIdx.x;
   const unsigned int s_idx = threadIdx.x;
+  const unsigned int BLOCK = 256;
+  assert(blockDim.x == BLOCK);
   assert( blockDim.y == 3 && blockIdx.y == 0 );
   unsigned int idy = threadIdx.y;
   if( idx >= np ){ return; }
   // ---------------
-  const unsigned int BLOCK = 256;
-  assert(blockDim.x == BLOCK);
+  // put value in shared memory
   __shared__ float s_XYZ[BLOCK][3];
   s_XYZ[s_idx][idy] = d_XYZ[idx*3+idy];
   __syncthreads();
   if( s_idx == 0 ) {
+    // computing min/max inside shared memory
     float vmin = s_XYZ[0][idy];
     float vmax = s_XYZ[0][idy];
     int ns = BLOCK;
@@ -56,6 +58,7 @@ void kernel_MinMax_TPB256(
       if( s_XYZ[is][idy] < vmin ){ vmin = s_XYZ[is][idy]; }
       if( s_XYZ[is][idy] > vmax ){ vmax = s_XYZ[is][idy]; }
     }
+    // computing mim/max across blocks
     device_AtomicMinFloat(d_minmax+idy+0,vmin);
     device_AtomicMaxFloat(d_minmax+idy+3,vmax);
   }
