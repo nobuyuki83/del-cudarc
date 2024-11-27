@@ -8,7 +8,7 @@ pub fn set_consecutive_sequence(
     let cfg = cudarc::driver::LaunchConfig::for_num_elems(num_d_in);
     let param = (d_in, num_d_in);
     use cudarc::driver::LaunchAsync;
-    let func = crate::get_or_load_func(&dev, "gpu_set_consecutive_sequence", kernel_util::UTIL)?;
+    let func = crate::get_or_load_func(dev, "gpu_set_consecutive_sequence", kernels::UTIL)?;
     unsafe { func.launch(cfg, param) }?;
     Ok(())
 }
@@ -25,7 +25,7 @@ pub fn permute(
     let cfg = cudarc::driver::LaunchConfig::for_num_elems(n as u32);
     let param = (n, new2data, new2old, old2data);
     use cudarc::driver::LaunchAsync;
-    let func = crate::get_or_load_func(&dev, "permute", kernel_util::UTIL)?;
+    let func = crate::get_or_load_func(dev, "permute", kernels::UTIL)?;
     unsafe { func.launch(cfg, param) }?;
     Ok(())
 }

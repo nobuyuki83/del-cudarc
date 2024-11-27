@@ -1,32 +1,28 @@
 [workspace]
 members = [
-    "del-cudarc-util",
-    "kernel-util"]
+    "kernels"]
 resolver = "2"
 
-[workspace.package]
+[package]
 name = "del-cudarc"
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
 
-[workspace.dependencies.cudarc]
+[dependencies.cudarc]
 version = "*"
 features = [
     "std", "cublas", "cublaslt", "curand", "driver", "nvrtc",
     "f16", "cuda-version-from-build-system", "dynamic-linking"]
 default-features=false
 
-[workspace.dependencies]
+[dependencies]
 anyhow = "1.0.93"
 rand = "0.8.5"
 rand_chacha = "0.3.1"
-# build dependncy
-bindgen_cuda = "0.1.5"
 
 # internal
-kernel-util = { path = "kernel-util" }
-del-cudarc-util = {path = "del-cudarc-util"}
+kernels = { path = "kernels" }
 
 
 

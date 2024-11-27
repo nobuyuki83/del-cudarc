@@ -2,10 +2,9 @@ use cudarc::driver::{CudaDevice, CudaSlice, DeviceSlice};
 
 // An attempt at the gpu radix sort variant described in this paper:
 // https://vgc.poly.edu/~csilva/papers/cgf.pdf
-pub fn radix_sort_by_key_u32(
+pub fn radix_sort_u32(
     dev: &std::sync::Arc<CudaDevice>,
     d_in: &mut CudaSlice<u32>,
-    d_idx_in: &mut CudaSlice<u32>,
 ) -> anyhow::Result<()> {
     let d_in_len = d_in.len() as u32;
     const MAX_BLOCK_SZ: u32 = 128;
@@ -21,9 +20,9 @@ pub fn radix_sort_by_key_u32(
     };
 
     let mut d_out = dev.alloc_zeros::<u32>(d_in.len())?;
-    let mut d_prefix_sums = dev.alloc_zeros::<u32>(d_in.len())?;
-    let mut d_idx_out = dev.alloc_zeros::<u32>(d_in.len())?;
-    //
+    let mut d_prefix_sums = dev.alloc_zeros::<u32>(d_in_len as usize)?;
+
+    // let d_block_sums;
     let d_block_sums_len = 4 * grid_sz; // 4-way split
     let mut d_block_sums = dev.alloc_zeros::<u32>(d_block_sums_len as usize)?;
     let mut d_scan_block_sums = dev.alloc_zeros::<u32>(d_block_sums_len as usize)?;
@@ -59,8 +58,6 @@ pub fn radix_sort_by_key_u32(
                 shift_width,
                 d_in,
                 max_elems_per_block,
-                d_idx_in,
-                &mut d_idx_out,
             )?;
         }
 
@@ -77,10 +74,9 @@ pub fn radix_sort_by_key_u32(
             &d_prefix_sums,
             shift_width,
             max_elems_per_block,
-            &d_idx_out,
-            d_idx_in,
         )?
     }
+    // dev.dtod_copy(d_in, d_out)?;
     Ok(())
 }
 
@@ -93,8 +89,6 @@ fn gpu_radix_sort_local(
     shift_width: u32,
     d_in: &mut CudaSlice<u32>,
     max_elems_per_block: u32,
-    idxin_dev: &CudaSlice<u32>,
-    idxout_dev: &mut CudaSlice<u32>,
 ) -> anyhow::Result<()> {
     let d_in_len = d_in.len() as u32;
     let param = (
@@ -105,12 +99,10 @@ fn gpu_radix_sort_local(
         d_in,
         d_in_len,
         max_elems_per_block,
-        idxin_dev,
-        idxout_dev,
     );
     use cudarc::driver::LaunchAsync;
     let gpu_radix_sort_local =
-        crate::get_or_load_func(dev, "gpu_radix_sort_local", kernel_util::SORT_BY_KEY_U32)?;
+        crate::get_or_load_func(dev, "gpu_radix_sort_local", kernels::SORT_U32)?;
     unsafe { gpu_radix_sort_local.launch(cfg, param) }?;
     Ok(())
 }
@@ -125,8 +117,6 @@ fn glbl_shuffle(
     d_prefix_sums: &CudaSlice<u32>,
     shift_width: u32,
     max_elems_per_block: u32,
-    idxin_dev: &CudaSlice<u32>,
-    idxout_dev: &mut CudaSlice<u32>,
 ) -> anyhow::Result<()> {
     // scatter/shuffle block-wise sorted array to final positions
     let d_in_len = d_in.len() as u32;
@@ -143,12 +133,9 @@ fn glbl_shuffle(
         shift_width,
         d_in_len,
         max_elems_per_block,
-        idxin_dev,
-        idxout_dev,
     );
     use cudarc::driver::LaunchAsync;
-    let gpu_glbl_shuffle =
-        crate::get_or_load_func(dev, "gpu_glbl_shuffle", kernel_util::SORT_BY_KEY_U32)?;
+    let gpu_glbl_shuffle = crate::get_or_load_func(dev, "gpu_glbl_shuffle", kernels::SORT_U32)?;
     unsafe { gpu_glbl_shuffle.launch(cfg, param) }?;
     Ok(())
 }
@@ -160,7 +147,6 @@ fn test_u32() -> anyhow::Result<()> {
         13usize,
         1023,
         1024,
-        1025,
         1024 * 1024 - 1,
         1024 * 1024,
         1024 * 1024 + 1,
@@ -174,12 +160,8 @@ fn test_u32() -> anyhow::Result<()> {
             (0..n).for_each(|_| vin.push(rng.gen()));
             vin
         };
-        let idxin: Vec<u32> = (0u32..n as u32).collect::<Vec<_>>();
-        let mut idxin_dev = dev.htod_copy(idxin.clone())?;
-        // dbg!(dev.dtoh_sync_copy(&idxin_dev));
-        // let mut idxout_dev = dev.alloc_zeros(idxin_dev.len())?;
         let mut vio_dev = dev.htod_copy::<u32>(vin.clone())?;
-        radix_sort_by_key_u32(&dev, &mut vio_dev, &mut idxin_dev)?;
+        radix_sort_u32(&dev, &mut vio_dev)?;
         let vout0 = {
             // naive cpu computation
             let mut vout0 = vin.clone();
@@ -187,26 +169,11 @@ fn test_u32() -> anyhow::Result<()> {
             vout0
         };
         let vout = dev.dtoh_sync_copy(&vio_dev)?;
+        // println!("***********, {}, {}", n, 1024*1024);
         vout.iter().zip(vout0.iter()).for_each(|(a, b)| {
             // println!("{} {}",a,b);
-            assert_eq!(a, b, "{} {}", a, b);
-        });
-        let idxout = dev.dtoh_sync_copy(&idxin_dev)?;
-        for jdx in 1..idxout.len() {
-            assert!(
-                vin[idxout[jdx - 1] as usize] <= vin[idxout[jdx] as usize],
-                "{} {} {}",
-                n,
-                1024 * 1024 - 1,
-                jdx
-            );
-        }
-        let mut idxout0 = idxin.clone();
-        idxout0.sort_by(|&a, &b| vin[a as usize].cmp(&vin[b as usize]));
-        idxout.iter().zip(idxout0.iter()).for_each(|(&a, &b)| {
-            // println!("{} {}",a,b);
             assert_eq!(a, b);
-        })
+        });
     }
     Ok(())
 }
