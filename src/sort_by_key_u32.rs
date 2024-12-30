@@ -179,7 +179,11 @@ fn test_u32() -> anyhow::Result<()> {
         // dbg!(dev.dtoh_sync_copy(&idxin_dev));
         // let mut idxout_dev = dev.alloc_zeros(idxin_dev.len())?;
         let mut vio_dev = dev.htod_copy::<u32>(vin.clone())?;
-        radix_sort_by_key_u32(&dev, &mut vio_dev.slice_mut(0..n), &mut idxin_dev.slice_mut(0..n))?;
+        radix_sort_by_key_u32(
+            &dev,
+            &mut vio_dev.slice_mut(0..n),
+            &mut idxin_dev.slice_mut(0..n),
+        )?;
         let vout0 = {
             // naive cpu computation
             let mut vout0 = vin.clone();
