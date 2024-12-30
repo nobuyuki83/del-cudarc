@@ -1,9 +1,10 @@
-use cudarc::driver::{CudaDevice, CudaSlice, DeviceSlice};
+#[allow(unused_imports)]
+use cudarc::driver::{CudaDevice, CudaSlice, CudaView, DeviceSlice};
 
 pub fn set_consecutive_sequence(
     dev: &std::sync::Arc<CudaDevice>,
-    d_in: &mut CudaSlice<u32>,
-) -> anyhow::Result<()> {
+    d_in: &mut cudarc::driver::CudaViewMut<u32>,
+) -> std::result::Result<(), cudarc::driver::DriverError> {
     let num_d_in = d_in.len() as u32;
     let cfg = cudarc::driver::LaunchConfig::for_num_elems(num_d_in);
     let param = (d_in, num_d_in);

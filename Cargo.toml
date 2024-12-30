@@ -10,14 +10,14 @@ edition = "2021"
 license = "MIT"
 
 [dependencies.cudarc]
-version = "*"
+version = "=0.12.1"
 features = [
     "std", "cublas", "cublaslt", "curand", "driver", "nvrtc",
     "f16", "cuda-version-from-build-system", "dynamic-linking"]
 default-features=false
 
 [dependencies]
-anyhow = "1.0.93"
+anyhow = "1.0.94"
 rand = "0.8.5"
 rand_chacha = "0.3.1"
 

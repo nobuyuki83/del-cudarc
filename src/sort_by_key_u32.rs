@@ -1,12 +1,12 @@
-use cudarc::driver::{CudaDevice, CudaSlice, DeviceSlice};
+use cudarc::driver::{CudaDevice, CudaSlice, CudaViewMut, DeviceSlice};
 
 // An attempt at the gpu radix sort variant described in this paper:
 // https://vgc.poly.edu/~csilva/papers/cgf.pdf
 pub fn radix_sort_by_key_u32(
     dev: &std::sync::Arc<CudaDevice>,
-    d_in: &mut CudaSlice<u32>,
-    d_idx_in: &mut CudaSlice<u32>,
-) -> anyhow::Result<()> {
+    d_in: &mut CudaViewMut<u32>,
+    d_idx_in: &mut CudaViewMut<u32>,
+) -> std::result::Result<(), cudarc::driver::DriverError> {
     let d_in_len = d_in.len() as u32;
     const MAX_BLOCK_SZ: u32 = 128;
     let block_sz: u32 = MAX_BLOCK_SZ;
@@ -91,11 +91,11 @@ fn gpu_radix_sort_local(
     d_prefix_sums: &mut CudaSlice<u32>,
     d_block_sums: &mut CudaSlice<u32>,
     shift_width: u32,
-    d_in: &mut CudaSlice<u32>,
+    d_in: &mut CudaViewMut<u32>,
     max_elems_per_block: u32,
-    idxin_dev: &CudaSlice<u32>,
+    idxin_dev: &mut CudaViewMut<u32>,
     idxout_dev: &mut CudaSlice<u32>,
-) -> anyhow::Result<()> {
+) -> std::result::Result<(), cudarc::driver::DriverError> {
     let d_in_len = d_in.len() as u32;
     let param = (
         d_out,
@@ -119,15 +119,15 @@ fn glbl_shuffle(
     dev: &std::sync::Arc<CudaDevice>,
     grid_sz: u32,
     block_sz: u32,
-    d_in: &mut CudaSlice<u32>,
+    d_in: &mut CudaViewMut<u32>,
     d_out: &CudaSlice<u32>,
     d_scan_block_sums: &CudaSlice<u32>,
     d_prefix_sums: &CudaSlice<u32>,
     shift_width: u32,
     max_elems_per_block: u32,
     idxin_dev: &CudaSlice<u32>,
-    idxout_dev: &mut CudaSlice<u32>,
-) -> anyhow::Result<()> {
+    idxout_dev: &mut CudaViewMut<u32>,
+) -> std::result::Result<(), cudarc::driver::DriverError> {
     // scatter/shuffle block-wise sorted array to final positions
     let d_in_len = d_in.len() as u32;
     let cfg = cudarc::driver::LaunchConfig {
@@ -179,7 +179,7 @@ fn test_u32() -> anyhow::Result<()> {
         // dbg!(dev.dtoh_sync_copy(&idxin_dev));
         // let mut idxout_dev = dev.alloc_zeros(idxin_dev.len())?;
         let mut vio_dev = dev.htod_copy::<u32>(vin.clone())?;
-        radix_sort_by_key_u32(&dev, &mut vio_dev, &mut idxin_dev)?;
+        radix_sort_by_key_u32(&dev, &mut vio_dev.slice_mut(0..n), &mut idxin_dev.slice_mut(0..n))?;
         let vout0 = {
             // naive cpu computation
             let mut vout0 = vin.clone();

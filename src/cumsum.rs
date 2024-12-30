@@ -5,7 +5,7 @@ fn block_sums(
     d_out: &mut CudaSlice<u32>,
     d_in: &CudaSlice<u32>,
     num_elem: u32,
-) -> anyhow::Result<(u32, u32, CudaSlice<u32>)> {
+) -> std::result::Result<(u32, u32, CudaSlice<u32>), cudarc::driver::DriverError> {
     const MAX_BLOCK_SZ: u32 = 1024;
     // const NUM_BANKS: u32 = 32;
     const LOG_NUM_BANKS: u32 = 5;
@@ -114,7 +114,7 @@ fn add_block_sums(
     num_elem: u32,
     grid_sz: u32,
     block_sz: u32,
-) -> anyhow::Result<()> {
+) -> std::result::Result<(), cudarc::driver::DriverError> {
     let cfg = {
         cudarc::driver::LaunchConfig {
             grid_dim: (grid_sz, 1, 1),
@@ -134,7 +134,7 @@ pub fn sum_scan_blelloch(
     dev: &std::sync::Arc<CudaDevice>,
     vout_dev: &mut CudaSlice<u32>,
     vin_dev: &CudaSlice<u32>,
-) -> anyhow::Result<()> {
+) -> std::result::Result<(), cudarc::driver::DriverError> {
     let n = vin_dev.len();
     assert_eq!(vout_dev.len(), n);
     let (grid_sz, block_sz, d_block_sums) = block_sums(&dev, vout_dev, &vin_dev, n as u32)?;
