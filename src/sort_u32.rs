@@ -69,7 +69,7 @@ pub fn radix_sort_u32(
             grid_sz,
             block_sz,
             d_in,
-            &mut d_out,
+            &d_out,
             &d_scan_block_sums,
             &d_prefix_sums,
             shift_width,
@@ -80,6 +80,7 @@ pub fn radix_sort_u32(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 fn gpu_radix_sort_local(
     dev: &std::sync::Arc<CudaDevice>,
     cfg: cudarc::driver::LaunchConfig,
@@ -107,6 +108,7 @@ fn gpu_radix_sort_local(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 fn glbl_shuffle(
     dev: &std::sync::Arc<CudaDevice>,
     grid_sz: u32,

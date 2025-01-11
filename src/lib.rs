@@ -1,4 +1,5 @@
 pub mod cumsum;
+pub mod get_flagged_element;
 pub mod sort_by_key_u32;
 pub mod sort_by_key_u64;
 pub mod sort_u32;

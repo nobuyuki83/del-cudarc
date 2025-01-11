@@ -56,7 +56,7 @@ fn block_sums(
             max_elems_per_block,
         );
         use cudarc::driver::LaunchAsync;
-        let gpu_prescan = crate::get_or_load_func(&dev, "gpu_prescan", kernels::CUMSUM)?;
+        let gpu_prescan = crate::get_or_load_func(dev, "gpu_prescan", kernels::CUMSUM)?;
         unsafe { gpu_prescan.launch(cfg, param) }?;
     }
 
@@ -137,7 +137,7 @@ pub fn sum_scan_blelloch(
 ) -> std::result::Result<(), cudarc::driver::DriverError> {
     let n = vin_dev.len();
     assert_eq!(vout_dev.len(), n);
-    let (grid_sz, block_sz, d_block_sums) = block_sums(&dev, vout_dev, &vin_dev, n as u32)?;
+    let (grid_sz, block_sz, d_block_sums) = block_sums(dev, vout_dev, vin_dev, n as u32)?;
     add_block_sums(dev, vout_dev, &d_block_sums, n as u32, grid_sz, block_sz)?;
     Ok(())
 }
