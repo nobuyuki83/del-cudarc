@@ -28,7 +28,7 @@ extern \"C\" __global__ void sin_kernel(float *out, const float *inp, const size
             .for_each(|&v| assert!((v - 1.0f32.sin()) < 1.0e-5));
     }
     {
-        dev.load_ptx(kernels::SIMPLE.into(), "my_module", &["vector_add"])?;
+        dev.load_ptx(del_cudarc_kernel::SIMPLE.into(), "my_module", &["vector_add"])?;
         let vector_add = dev.get_func("my_module", "vector_add").unwrap();
         let mut out = dev.alloc_zeros::<f32>(100)?;
         unsafe { vector_add.launch(cfg, (&mut out, &inp0, &inp1, 100usize)) }?;

@@ -29,7 +29,7 @@ pub fn get_flagged_element(
     let func = crate::get_or_load_func(
         device,
         "get_element_from_cumsum_flag",
-        kernels::GET_FLAGGED_ELEMENT,
+        del_cudarc_kernel::GET_FLAGGED_ELEMENT,
     )?;
     unsafe { func.launch(cfg, param) }?;
     Ok(oelem2val)

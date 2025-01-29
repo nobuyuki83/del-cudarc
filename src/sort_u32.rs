@@ -103,7 +103,7 @@ fn gpu_radix_sort_local(
     );
     use cudarc::driver::LaunchAsync;
     let gpu_radix_sort_local =
-        crate::get_or_load_func(dev, "gpu_radix_sort_local", kernels::SORT_U32)?;
+        crate::get_or_load_func(dev, "gpu_radix_sort_local", del_cudarc_kernel::SORT_U32)?;
     unsafe { gpu_radix_sort_local.launch(cfg, param) }?;
     Ok(())
 }
@@ -137,7 +137,7 @@ fn glbl_shuffle(
         max_elems_per_block,
     );
     use cudarc::driver::LaunchAsync;
-    let gpu_glbl_shuffle = crate::get_or_load_func(dev, "gpu_glbl_shuffle", kernels::SORT_U32)?;
+    let gpu_glbl_shuffle = crate::get_or_load_func(dev, "gpu_glbl_shuffle", del_cudarc_kernel::SORT_U32)?;
     unsafe { gpu_glbl_shuffle.launch(cfg, param) }?;
     Ok(())
 }
