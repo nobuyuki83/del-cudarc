@@ -1,6 +1,6 @@
 [workspace]
 members = [
-    "kernels"]
+    "del-cudarc-kernel"]
 resolver = "2"
 
 [package]
@@ -22,7 +22,7 @@ rand = "0.8.5"
 rand_chacha = "0.3.1"
 
 # internal
-kernels = { path = "kernels" }
+kernels = { path = "del-cudarc-kernel" }
 
 
 
