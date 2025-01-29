@@ -158,7 +158,7 @@ fn test_u64() -> anyhow::Result<()> {
         let mut rng = rand_chacha::ChaChaRng::from_seed([0; 32]);
         let vin = {
             let mut vin: Vec<u64> = vec![];
-            (0..n).for_each(|_| vin.push(rng.gen()));
+            (0..n).for_each(|_| vin.push(rng.random()));
             vin
         };
         let mut vio_dev = dev.htod_copy::<u64>(vin.clone())?;

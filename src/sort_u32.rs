@@ -159,7 +159,7 @@ fn test_u32() -> anyhow::Result<()> {
         let mut rng = rand_chacha::ChaChaRng::from_seed([0; 32]);
         let vin = {
             let mut vin: Vec<u32> = vec![];
-            (0..n).for_each(|_| vin.push(rng.gen()));
+            (0..n).for_each(|_| vin.push(rng.random()));
             vin
         };
         let mut vio_dev = dev.htod_copy::<u32>(vin.clone())?;

@@ -10,19 +10,19 @@ edition = "2021"
 license = "MIT"
 
 [dependencies.cudarc]
-version = "=0.12.1"
+version = "=0.13.4"
 features = [
-    "std", "cublas", "cublaslt", "curand", "driver", "nvrtc",
-    "f16", "cuda-version-from-build-system", "dynamic-linking"]
+    "std", "driver", "nvrtc", "cuda-version-from-build-system", "dynamic-linking"]
 default-features=false
 
 [dependencies]
-anyhow = "1.0.94"
-rand = "0.8.5"
-rand_chacha = "0.3.1"
+anyhow = "1.0.95"
+rand = "0.9.0"
+rand_chacha = "0.9.0"
 
-# internal
-del-cudarc-kernel = { path = "del-cudarc-kernel" }
+# for develop
+# del-cudarc-kernel = { path = "del-cudarc-kernel" }
+del-cudarc-kernel = "0.1.0"
 
 
 
