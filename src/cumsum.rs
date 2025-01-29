@@ -124,7 +124,8 @@ fn add_block_sums(
     };
     let param = (vout_dev, d_block_sums, num_elem);
     use cudarc::driver::LaunchAsync;
-    let gpu_add_block_sums = crate::get_or_load_func(dev, "gpu_add_block_sums", del_cudarc_kernel::CUMSUM)?;
+    let gpu_add_block_sums =
+        crate::get_or_load_func(dev, "gpu_add_block_sums", del_cudarc_kernel::CUMSUM)?;
     unsafe { gpu_add_block_sums.launch(cfg, param) }?;
     Ok(())
 }
@@ -143,7 +144,7 @@ pub fn sum_scan_blelloch(
 }
 
 #[test]
-fn test() -> anyhow::Result<()> {
+fn test() -> Result<(), cudarc::driver::DriverError> {
     let dev = cudarc::driver::CudaDevice::new(0)?;
     let nvs = [
         (1024, 1024),

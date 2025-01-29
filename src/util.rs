@@ -9,7 +9,8 @@ pub fn set_consecutive_sequence(
     let cfg = cudarc::driver::LaunchConfig::for_num_elems(num_d_in);
     let param = (d_in, num_d_in);
     use cudarc::driver::LaunchAsync;
-    let func = crate::get_or_load_func(dev, "gpu_set_consecutive_sequence", del_cudarc_kernel::UTIL)?;
+    let func =
+        crate::get_or_load_func(dev, "gpu_set_consecutive_sequence", del_cudarc_kernel::UTIL)?;
     unsafe { func.launch(cfg, param) }?;
     Ok(())
 }
@@ -19,7 +20,7 @@ pub fn permute(
     new2data: &mut CudaSlice<u32>,
     new2old: &CudaSlice<u32>,
     old2data: &CudaSlice<u32>,
-) -> anyhow::Result<()> {
+) -> Result<(), cudarc::driver::DriverError> {
     let n = new2data.len();
     assert_eq!(new2old.len(), n);
     assert_eq!(old2data.len(), n);

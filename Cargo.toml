@@ -6,24 +6,22 @@ resolver = "2"
 [package]
 name = "del-cudarc"
 description = "utility funcs for cudarc"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 license = "MIT"
 
-[dependencies.cudarc]
-version = "=0.12.1" # for candle v0.8.2
-features = [
-    "std", "driver", "nvrtc", "cuda-version-from-build-system", "dynamic-linking"]
-default-features=false
-
 [dependencies]
-anyhow = "1.0.95"
-rand = "0.9.0"
-rand_chacha = "0.9.0"
-
 # for develop
 # del-cudarc-kernel = { path = "del-cudarc-kernel" }
-del-cudarc-kernel = "0.1.0"
+# cudarc = {version = "=0.13.0", features = ["std", "driver", "nvrtc", "cuda-version-from-build-system", "dynamic-linking"], default-features = false}
 
+# for deploy
+del-cudarc-kernel = "0.1.0"
+# this version is constrained by the candle 0.8.2
+cudarc = {version = "=0.12.1", features = ["std", "driver", "nvrtc", "cuda-version-from-build-system", "dynamic-linking"], default-features = false}
+
+[dev-dependencies]
+rand = "0.9.0"
+rand_chacha = "0.9.0"
 
 

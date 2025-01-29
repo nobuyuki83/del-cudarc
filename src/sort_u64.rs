@@ -5,7 +5,7 @@ use cudarc::driver::{CudaDevice, CudaSlice, DeviceSlice};
 pub fn radix_sort_u64(
     dev: &std::sync::Arc<CudaDevice>,
     d_in: &mut CudaSlice<u64>,
-) -> anyhow::Result<()> {
+) -> Result<(), cudarc::driver::DriverError> {
     let d_in_len = d_in.len() as u32;
     const MAX_BLOCK_SZ: u32 = 128;
     let block_sz: u32 = MAX_BLOCK_SZ;
@@ -88,7 +88,7 @@ fn gpu_radix_sort_local(
     shift_width: u32,
     d_in: &mut CudaSlice<u64>,
     max_elems_per_block: u32,
-) -> anyhow::Result<()> {
+) -> Result<(), cudarc::driver::DriverError> {
     let d_in_len = d_in.len() as u32;
     let param = (
         d_out,
@@ -117,7 +117,7 @@ fn glbl_shuffle(
     d_prefix_sums: &CudaSlice<u32>,
     shift_width: u32,
     max_elems_per_block: u32,
-) -> anyhow::Result<()> {
+) -> Result<(), cudarc::driver::DriverError> {
     // scatter/shuffle block-wise sorted array to final positions
     let d_in_len = d_in.len() as u32;
     let cfg = cudarc::driver::LaunchConfig {
@@ -135,13 +135,14 @@ fn glbl_shuffle(
         max_elems_per_block,
     );
     use cudarc::driver::LaunchAsync;
-    let gpu_glbl_shuffle = crate::get_or_load_func(dev, "gpu_glbl_shuffle", del_cudarc_kernel::SORT_U64)?;
+    let gpu_glbl_shuffle =
+        crate::get_or_load_func(dev, "gpu_glbl_shuffle", del_cudarc_kernel::SORT_U64)?;
     unsafe { gpu_glbl_shuffle.launch(cfg, param) }?;
     Ok(())
 }
 
 #[test]
-fn test_u64() -> anyhow::Result<()> {
+fn test_u64() -> Result<(), cudarc::driver::DriverError> {
     let dev = cudarc::driver::CudaDevice::new(0)?;
     let ns = [
         13usize,

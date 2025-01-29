@@ -110,8 +110,11 @@ fn gpu_radix_sort_local(
         idxout_dev,
     );
     use cudarc::driver::LaunchAsync;
-    let gpu_radix_sort_local =
-        crate::get_or_load_func(dev, "gpu_radix_sort_local", del_cudarc_kernel::SORT_BY_KEY_U32)?;
+    let gpu_radix_sort_local = crate::get_or_load_func(
+        dev,
+        "gpu_radix_sort_local",
+        del_cudarc_kernel::SORT_BY_KEY_U32,
+    )?;
     unsafe { gpu_radix_sort_local.launch(cfg, param) }?;
     Ok(())
 }
@@ -156,7 +159,7 @@ fn glbl_shuffle(
 }
 
 #[test]
-fn test_u32() -> anyhow::Result<()> {
+fn test_u32() -> Result<(), cudarc::driver::DriverError> {
     let dev = cudarc::driver::CudaDevice::new(0)?;
     let ns = [
         13usize,
