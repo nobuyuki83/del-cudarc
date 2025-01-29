@@ -5,6 +5,7 @@ resolver = "2"
 
 [package]
 name = "del-cudarc"
+description = "utility funcs for cudarc"
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
