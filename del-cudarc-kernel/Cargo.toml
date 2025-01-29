@@ -3,6 +3,7 @@ name = "del-cudarc-kernel"
 description = "hogehoge"
 publish = true
 version = "0.1.0"
+license = "MIT"
 
 [dependencies]
 
