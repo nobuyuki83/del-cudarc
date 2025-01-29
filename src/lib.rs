@@ -1,3 +1,5 @@
+pub use cudarc;
+
 pub mod cumsum;
 pub mod get_flagged_element;
 pub mod sort_by_key_u32;

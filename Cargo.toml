@@ -6,12 +6,12 @@ resolver = "2"
 [package]
 name = "del-cudarc"
 description = "utility funcs for cudarc"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 license = "MIT"
 
 [dependencies.cudarc]
-version = "=0.13.4"
+version = "=0.12.1" # for candle v0.8.2
 features = [
     "std", "driver", "nvrtc", "cuda-version-from-build-system", "dynamic-linking"]
 default-features=false
