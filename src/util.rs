@@ -31,3 +31,21 @@ pub fn permute(
     unsafe { func.launch(cfg, param) }?;
     Ok(())
 }
+
+pub fn set_value_at_mask(
+    dev: &std::sync::Arc<CudaDevice>,
+    elem2value: &mut CudaSlice<f32>,
+    set_value: f32,
+    elem2mask: &CudaSlice<u32>,
+    mask: u32,
+    is_set_value_where_mask_value_equal: bool
+) -> Result<(), cudarc::driver::DriverError> {
+    let n = elem2value.len();
+    assert_eq!(elem2mask.len(), n);
+    let cfg = cudarc::driver::LaunchConfig::for_num_elems(n as u32);
+    let param = (n, elem2value, set_value, elem2mask, mask, is_set_value_where_mask_value_equal);
+    use cudarc::driver::LaunchAsync;
+    let func = crate::get_or_load_func(dev, "set_value_at_mask", del_cudarc_kernel::UTIL)?;
+    unsafe { func.launch(cfg, param) }?;
+    Ok(())
+}

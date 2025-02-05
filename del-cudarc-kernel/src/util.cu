@@ -25,4 +25,21 @@ void permute(
     new2data[i_new] = old2data[i_old];
 }
 
+__global__
+void set_value_at_mask(
+    unsigned int n,
+    float* elem2value,
+    float set_value,
+    const uint32_t* elem2mask,
+    uint32_t mask,
+    bool is_set_value_at_mask_value_equal)
+{
+    int i_elem = blockDim.x * blockIdx.x + threadIdx.x;
+    if( i_elem >= n ){ return; }
+    //
+    if( (elem2mask[i_elem] == mask) == is_set_value_at_mask_value_equal) {
+        elem2value[i_elem] = set_value;
+    }
+}
+
 }
