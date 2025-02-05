@@ -11,17 +11,14 @@ edition = "2021"
 license = "MIT"
 
 [dependencies]
-# for develop
+# for develop/push
 del-cudarc-kernel = { path = "del-cudarc-kernel" }
-# cudarc = {version = "=0.13.0", features = ["std", "driver", "nvrtc", "cuda-version-from-build-system", "dynamic-linking"], default-features = false}
+cudarc = { version = "=0.13.4", features = ["std", "driver", "nvrtc", "cuda-version-from-build-system", "dynamic-linking"], default-features = false}
 
 # for deploy
 # del-cudarc-kernel = "0.1.0"
-
 # for deploy ( this version is constrained by the candle 0.8.2)
 # cudarc = { version = "=0.12.1", features = ["std", "driver", "nvrtc", "cuda-version-from-build-system", "dynamic-linking"], default-features = false}
-# for develop
-cudarc = { version = "=0.13.4", features = ["std", "driver", "nvrtc", "cuda-version-from-build-system", "dynamic-linking"], default-features = false}
 
 
 [dev-dependencies]
