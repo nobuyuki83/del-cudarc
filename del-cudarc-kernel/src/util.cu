@@ -1,3 +1,5 @@
+#include <stdint.h>
+
 extern "C" {
 
 __global__

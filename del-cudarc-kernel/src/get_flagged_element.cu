@@ -1,3 +1,5 @@
+#include <stdint.h>
+
 extern "C" {
 
 __global__ void get_element_from_cumsum_flag(

@@ -1,3 +1,4 @@
+#include <stdint.h>
 #define MAX_BLOCK_SZ 128
 
 extern "C" {
