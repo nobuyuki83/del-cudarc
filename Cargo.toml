@@ -7,7 +7,7 @@ resolver = "2"
 name = "del-cudarc"
 description = "utility funcs for cudarc"
 version = "0.1.2"
-edition = "2021"
+edition = "2024"
 license = "MIT"
 
 [dependencies]
@@ -15,7 +15,7 @@ license = "MIT"
 # for develop/push
 del-cudarc-kernel = { path = "del-cudarc-kernel" }
 # this version comes from candle library
-cudarc = { version = "=0.13.5", features = ["std", "driver", "nvrtc", "cuda-version-from-build-system", "dynamic-linking"], default-features = false}
+cudarc = { version = "=0.16.0", features = ["std", "driver", "nvrtc", "cuda-version-from-build-system", "dynamic-linking"], default-features = false}
 
 ############
 # for deploy

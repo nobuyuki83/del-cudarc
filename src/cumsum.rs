@@ -1,7 +1,8 @@
-use cudarc::driver::{CudaDevice, CudaSlice, DeviceSlice};
+use cudarc::driver::PushKernelArg;
+use cudarc::driver::{CudaContext, CudaSlice};
 
 fn block_sums(
-    dev: &std::sync::Arc<CudaDevice>,
+    ctx: &std::sync::Arc<CudaContext>,
     d_out: &mut CudaSlice<u32>,
     d_in: &CudaSlice<u32>,
     num_elem: u32,
@@ -10,8 +11,11 @@ fn block_sums(
     // const NUM_BANKS: u32 = 32;
     const LOG_NUM_BANKS: u32 = 5;
 
+    // let dev = ctx.cu_device();
+    let stream = ctx.default_stream();
+
     // Zero out d_out
-    dev.memset_zeros(d_out)?;
+    stream.memset_zeros(d_out)?;
 
     // Set up number of threads and blocks
     let block_size = MAX_BLOCK_SZ / 2;
@@ -34,11 +38,12 @@ fn block_sums(
 
     // Allocate memory for array of total sums produced by each block
     // Array length must be the same as number of blocks
-    let mut d_block_sums = dev.alloc_zeros::<u32>(grid_size as usize)?;
+    let mut d_block_sums = stream.alloc_zeros::<u32>(grid_size as usize)?;
 
     // Sum scan data allocated to each block
     //gpu_sum_scan_blelloch<<<grid_sz, block_sz, sizeof(unsigned int) * max_elems_per_block >>>(d_out, d_in, d_block_sums, numElems);
     {
+        let stream2 = stream.fork()?;
         let cfg = {
             cudarc::driver::LaunchConfig {
                 grid_dim: (grid_size, 1, 1),
@@ -46,25 +51,23 @@ fn block_sums(
                 shared_mem_bytes: (u32::BITS / 8u32) * shmem_size,
             }
         };
-        //for_num_elems((img_size.0 * img_size.1).try_into()?);
-        let param = (
-            d_out,
-            d_in,
-            &d_block_sums,
-            num_elem,
-            shmem_size,
-            max_elems_per_block,
-        );
-        use cudarc::driver::LaunchAsync;
-        let gpu_prescan = crate::get_or_load_func(dev, "gpu_prescan", del_cudarc_kernel::CUMSUM)?;
-        unsafe { gpu_prescan.launch(cfg, param) }?;
+        let gpu_prescan = crate::get_or_load_func(ctx, "gpu_prescan", del_cudarc_kernel::CUMSUM)?;
+        let mut builder = stream2.launch_builder(&gpu_prescan);
+        builder.arg(d_out);
+        builder.arg(d_in);
+        builder.arg(&mut d_block_sums);
+        builder.arg(&num_elem);
+        builder.arg(&shmem_size);
+        builder.arg(&max_elems_per_block);
+        unsafe { builder.launch(cfg) }?;
     }
 
     // Sum scan total sums produced by each block
     // Use basic implementation if number of total sums is <= 2 * block_sz
     //  (This requires only one block to do the scan)
     if grid_size <= max_elems_per_block {
-        let d_dummy_blocks_sums = dev.alloc_zeros::<u32>(1)?;
+        let stream3 = stream.fork()?;
+        let d_dummy_blocks_sums = stream3.alloc_zeros::<u32>(1)?;
         //gpu_sum_scan_blelloch<<<1, block_sz, sizeof(unsigned int) * max_elems_per_block>>>(d_block_sums, d_block_sums, d_dummy_blocks_sums, grid_sz);
         let cfg = {
             cudarc::driver::LaunchConfig {
@@ -73,28 +76,27 @@ fn block_sums(
                 shared_mem_bytes: u32::BITS / 8u32 * shmem_size,
             }
         };
-        let param = (
-            &d_block_sums,
-            &d_block_sums,
-            &d_dummy_blocks_sums,
-            grid_size,
-            shmem_size,
-            max_elems_per_block,
-        );
-        use cudarc::driver::LaunchAsync;
-        let gpu_prescan = crate::get_or_load_func(dev, "gpu_prescan", del_cudarc_kernel::CUMSUM)?;
-        unsafe { gpu_prescan.launch(cfg, param) }?;
+        let gpu_prescan = crate::get_or_load_func(ctx, "gpu_prescan", del_cudarc_kernel::CUMSUM)?;
+        let mut builder = stream3.launch_builder(&gpu_prescan);
+        builder.arg(&d_block_sums);
+        builder.arg(&d_block_sums);
+        builder.arg(&d_dummy_blocks_sums);
+        builder.arg(&grid_size);
+        builder.arg(&shmem_size);
+        builder.arg(&max_elems_per_block);
+        unsafe { builder.launch(cfg) }?;
     } else {
+        let stream3 = stream.fork()?;
         // println!("prefix sum of blocks using recursive");
         // Else, recurse on this same function as you'll need the full-blown scan
         //  for the block sums
-        let mut d_in_block_sums = unsafe { dev.alloc::<u32>(grid_size as usize)? };
-        dev.dtod_copy(&d_block_sums, &mut d_in_block_sums)?;
+        let mut d_in_block_sums = unsafe { stream3.alloc::<u32>(grid_size as usize)? };
+        stream3.memcpy_dtod(&d_block_sums, &mut d_in_block_sums)?;
         assert_eq!(d_block_sums.len(), d_in_block_sums.len());
         let (grid_sz1, block_sz1, d_block_sums1) =
-            block_sums(dev, &mut d_block_sums, &d_in_block_sums, grid_size)?;
+            block_sums(ctx, &mut d_block_sums, &d_in_block_sums, grid_size)?;
         add_block_sums(
-            dev,
+            ctx,
             &mut d_block_sums,
             &d_block_sums1,
             num_elem,
@@ -108,7 +110,7 @@ fn block_sums(
 /// Add each block's total sum to its scan output
 /// in order to get the final, global scanned array
 fn add_block_sums(
-    dev: &std::sync::Arc<CudaDevice>,
+    ctx: &std::sync::Arc<CudaContext>,
     vout_dev: &mut CudaSlice<u32>,
     d_block_sums: &CudaSlice<u32>,
     num_elem: u32,
@@ -122,17 +124,21 @@ fn add_block_sums(
             shared_mem_bytes: 0,
         }
     };
-    let param = (vout_dev, d_block_sums, num_elem);
-    use cudarc::driver::LaunchAsync;
+    // let param = (vout_dev, d_block_sums, num_elem);
     let gpu_add_block_sums =
-        crate::get_or_load_func(dev, "gpu_add_block_sums", del_cudarc_kernel::CUMSUM)?;
-    unsafe { gpu_add_block_sums.launch(cfg, param) }?;
+        crate::get_or_load_func(ctx, "gpu_add_block_sums", del_cudarc_kernel::CUMSUM)?;
+    let stream = ctx.default_stream();
+    let mut builder = stream.launch_builder(&gpu_add_block_sums);
+    builder.arg(vout_dev);
+    builder.arg(d_block_sums);
+    builder.arg(&num_elem);
+    unsafe { builder.launch(cfg) }?;
     Ok(())
 }
 
 /// `vout_dev` does not need to be zeros
 pub fn sum_scan_blelloch(
-    dev: &std::sync::Arc<CudaDevice>,
+    dev: &std::sync::Arc<CudaContext>,
     vout_dev: &mut CudaSlice<u32>,
     vin_dev: &CudaSlice<u32>,
 ) -> std::result::Result<(), cudarc::driver::DriverError> {
@@ -145,7 +151,7 @@ pub fn sum_scan_blelloch(
 
 #[test]
 fn test() -> Result<(), cudarc::driver::DriverError> {
-    let dev = cudarc::driver::CudaDevice::new(0)?;
+    let ctx = cudarc::driver::CudaContext::new(0)?;
     let nvs = [
         (1024, 1024),
         (1023, 1),
@@ -162,10 +168,11 @@ fn test() -> Result<(), cudarc::driver::DriverError> {
             vin.push(0u32);
             vin
         };
-        let vin_dev = dev.htod_copy(vin.clone())?;
-        let mut vout_dev = dev.alloc_zeros::<u32>(vin_dev.len())?;
-        sum_scan_blelloch(&dev, &mut vout_dev, &vin_dev)?;
-        let vout = dev.dtoh_sync_copy(&vout_dev)?;
+        let stream = ctx.default_stream();
+        let vin_dev = stream.memcpy_stod(&vin)?;
+        let mut vout_dev = stream.alloc_zeros::<u32>(vin_dev.len())?;
+        sum_scan_blelloch(&ctx, &mut vout_dev, &vin_dev)?;
+        let vout = stream.memcpy_dtov(&vout_dev)?;
         assert_eq!(vout.len(), n + 1);
         for i in 0..n {
             assert_eq!(
