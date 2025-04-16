@@ -1,16 +1,16 @@
-use cudarc::driver::PushKernelArg;
-#[allow(unused_imports)]
-use cudarc::driver::{CudaContext, CudaSlice, CudaView, CudaViewMut, DeviceSlice};
+use cudarc::driver::{CudaSlice, CudaStream, CudaView, CudaViewMut, PushKernelArg};
 
 pub fn set_consecutive_sequence(
-    ctx: &std::sync::Arc<CudaContext>,
+    stream: &std::sync::Arc<CudaStream>,
     d_in: &mut CudaViewMut<u32>,
 ) -> Result<(), cudarc::driver::DriverError> {
-    let stream = ctx.default_stream();
     let num_d_in = d_in.len() as u32;
     let cfg = cudarc::driver::LaunchConfig::for_num_elems(num_d_in);
-    let func =
-        crate::get_or_load_func(ctx, "gpu_set_consecutive_sequence", del_cudarc_kernel::UTIL)?;
+    let func = crate::get_or_load_func(
+        stream.context(),
+        "gpu_set_consecutive_sequence",
+        del_cudarc_kernel::UTIL,
+    )?;
     let mut builder = stream.launch_builder(&func);
     builder.arg(d_in);
     builder.arg(&num_d_in);
@@ -19,7 +19,7 @@ pub fn set_consecutive_sequence(
 }
 
 pub fn permute(
-    ctx: &std::sync::Arc<CudaContext>,
+    stream: &std::sync::Arc<CudaStream>,
     new2data: &mut CudaSlice<u32>,
     new2old: &CudaSlice<u32>,
     old2data: &CudaSlice<u32>,
@@ -28,8 +28,7 @@ pub fn permute(
     assert_eq!(new2old.len(), n);
     assert_eq!(old2data.len(), n);
     let cfg = cudarc::driver::LaunchConfig::for_num_elems(n as u32);
-    let func = crate::get_or_load_func(ctx, "permute", del_cudarc_kernel::UTIL)?;
-    let stream = ctx.default_stream();
+    let func = crate::get_or_load_func(stream.context(), "permute", del_cudarc_kernel::UTIL)?;
     let mut builder = stream.launch_builder(&func);
     builder.arg(&n);
     builder.arg(new2data);
@@ -40,7 +39,7 @@ pub fn permute(
 }
 
 pub fn set_value_at_mask(
-    ctx: &std::sync::Arc<CudaContext>,
+    stream: &std::sync::Arc<CudaStream>,
     elem2value: &mut CudaSlice<f32>,
     set_value: f32,
     elem2mask: &CudaSlice<u32>,
@@ -50,8 +49,11 @@ pub fn set_value_at_mask(
     let n = elem2value.len();
     assert_eq!(elem2mask.len(), n);
     let cfg = cudarc::driver::LaunchConfig::for_num_elems(n as u32);
-    let stream = ctx.default_stream();
-    let func = crate::get_or_load_func(ctx, "set_value_at_mask", del_cudarc_kernel::UTIL)?;
+    let func = crate::get_or_load_func(
+        stream.context(),
+        "set_value_at_mask",
+        del_cudarc_kernel::UTIL,
+    )?;
     let mut builder = stream.launch_builder(&func);
     builder.arg(&n);
     builder.arg(elem2value);
@@ -82,7 +84,7 @@ pub unsafe fn from_raw_parts<'a, T>(
 
 /// # Safety
 pub unsafe fn from_raw_parts_mut<'a, T>(
-    stream: std::sync::Arc<cudarc::driver::CudaStream>,
+    stream: std::sync::Arc<CudaStream>,
     ptr: cudarc::driver::sys::CUdeviceptr,
     len: usize,
 ) -> CudaViewMut<'a, T> {

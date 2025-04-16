@@ -1,18 +1,14 @@
-use cudarc::driver::PushKernelArg;
-use cudarc::driver::{CudaContext, CudaSlice};
+use cudarc::driver::{CudaSlice, CudaStream, PushKernelArg};
 
 fn block_sums(
-    ctx: &std::sync::Arc<CudaContext>,
+    stream: &std::sync::Arc<CudaStream>,
     d_out: &mut CudaSlice<u32>,
     d_in: &CudaSlice<u32>,
     num_elem: u32,
-) -> std::result::Result<(u32, u32, CudaSlice<u32>), cudarc::driver::DriverError> {
+) -> Result<(u32, u32, CudaSlice<u32>), cudarc::driver::DriverError> {
     const MAX_BLOCK_SZ: u32 = 1024;
     // const NUM_BANKS: u32 = 32;
     const LOG_NUM_BANKS: u32 = 5;
-
-    // let dev = ctx.cu_device();
-    let stream = ctx.default_stream();
 
     // Zero out d_out
     stream.memset_zeros(d_out)?;
@@ -51,7 +47,8 @@ fn block_sums(
                 shared_mem_bytes: (u32::BITS / 8u32) * shmem_size,
             }
         };
-        let gpu_prescan = crate::get_or_load_func(ctx, "gpu_prescan", del_cudarc_kernel::CUMSUM)?;
+        let gpu_prescan =
+            crate::get_or_load_func(stream.context(), "gpu_prescan", del_cudarc_kernel::CUMSUM)?;
         let mut builder = stream2.launch_builder(&gpu_prescan);
         builder.arg(d_out);
         builder.arg(d_in);
@@ -76,7 +73,8 @@ fn block_sums(
                 shared_mem_bytes: u32::BITS / 8u32 * shmem_size,
             }
         };
-        let gpu_prescan = crate::get_or_load_func(ctx, "gpu_prescan", del_cudarc_kernel::CUMSUM)?;
+        let gpu_prescan =
+            crate::get_or_load_func(stream.context(), "gpu_prescan", del_cudarc_kernel::CUMSUM)?;
         let mut builder = stream3.launch_builder(&gpu_prescan);
         builder.arg(&d_block_sums);
         builder.arg(&d_block_sums);
@@ -94,9 +92,9 @@ fn block_sums(
         stream3.memcpy_dtod(&d_block_sums, &mut d_in_block_sums)?;
         assert_eq!(d_block_sums.len(), d_in_block_sums.len());
         let (grid_sz1, block_sz1, d_block_sums1) =
-            block_sums(ctx, &mut d_block_sums, &d_in_block_sums, grid_size)?;
+            block_sums(stream, &mut d_block_sums, &d_in_block_sums, grid_size)?;
         add_block_sums(
-            ctx,
+            stream,
             &mut d_block_sums,
             &d_block_sums1,
             num_elem,
@@ -110,7 +108,7 @@ fn block_sums(
 /// Add each block's total sum to its scan output
 /// in order to get the final, global scanned array
 fn add_block_sums(
-    ctx: &std::sync::Arc<CudaContext>,
+    stream: &std::sync::Arc<CudaStream>,
     vout_dev: &mut CudaSlice<u32>,
     d_block_sums: &CudaSlice<u32>,
     num_elem: u32,
@@ -125,9 +123,11 @@ fn add_block_sums(
         }
     };
     // let param = (vout_dev, d_block_sums, num_elem);
-    let gpu_add_block_sums =
-        crate::get_or_load_func(ctx, "gpu_add_block_sums", del_cudarc_kernel::CUMSUM)?;
-    let stream = ctx.default_stream();
+    let gpu_add_block_sums = crate::get_or_load_func(
+        stream.context(),
+        "gpu_add_block_sums",
+        del_cudarc_kernel::CUMSUM,
+    )?;
     let mut builder = stream.launch_builder(&gpu_add_block_sums);
     builder.arg(vout_dev);
     builder.arg(d_block_sums);
@@ -138,14 +138,14 @@ fn add_block_sums(
 
 /// `vout_dev` does not need to be zeros
 pub fn sum_scan_blelloch(
-    dev: &std::sync::Arc<CudaContext>,
+    stream: &std::sync::Arc<CudaStream>,
     vout_dev: &mut CudaSlice<u32>,
     vin_dev: &CudaSlice<u32>,
-) -> std::result::Result<(), cudarc::driver::DriverError> {
+) -> Result<(), cudarc::driver::DriverError> {
     let n = vin_dev.len();
     assert_eq!(vout_dev.len(), n);
-    let (grid_sz, block_sz, d_block_sums) = block_sums(dev, vout_dev, vin_dev, n as u32)?;
-    add_block_sums(dev, vout_dev, &d_block_sums, n as u32, grid_sz, block_sz)?;
+    let (grid_sz, block_sz, d_block_sums) = block_sums(stream, vout_dev, vin_dev, n as u32)?;
+    add_block_sums(stream, vout_dev, &d_block_sums, n as u32, grid_sz, block_sz)?;
     Ok(())
 }
 
@@ -171,7 +171,7 @@ fn test() -> Result<(), cudarc::driver::DriverError> {
         let stream = ctx.default_stream();
         let vin_dev = stream.memcpy_stod(&vin)?;
         let mut vout_dev = stream.alloc_zeros::<u32>(vin_dev.len())?;
-        sum_scan_blelloch(&ctx, &mut vout_dev, &vin_dev)?;
+        sum_scan_blelloch(&stream, &mut vout_dev, &vin_dev)?;
         let vout = stream.memcpy_dtov(&vout_dev)?;
         assert_eq!(vout.len(), n + 1);
         for i in 0..n {

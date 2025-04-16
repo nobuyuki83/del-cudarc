@@ -1,14 +1,12 @@
-use cudarc::driver::PushKernelArg;
-use cudarc::driver::{CudaContext, CudaSlice};
+use cudarc::driver::{CudaSlice, CudaStream, PushKernelArg};
 
 // An attempt at the gpu radix sort variant described in this paper:
 // https://vgc.poly.edu/~csilva/papers/cgf.pdf
 pub fn radix_sort_by_key_u64(
-    ctx: &std::sync::Arc<CudaContext>,
+    stream: &std::sync::Arc<CudaStream>,
     d_in: &mut CudaSlice<u64>,
     d_idx_in: &mut CudaSlice<u32>,
 ) -> Result<(), cudarc::driver::DriverError> {
-    let stream = ctx.default_stream();
     let d_in_len = d_in.len() as u32;
     const MAX_BLOCK_SZ: u32 = 128;
     let block_sz: u32 = MAX_BLOCK_SZ;
@@ -53,7 +51,7 @@ pub fn radix_sort_by_key_u64(
                 shared_mem_bytes: shmem_sz * (u32::BITS / 8),
             };
             gpu_radix_sort_local(
-                ctx,
+                stream,
                 cfg,
                 &mut d_out,
                 &mut d_prefix_sums,
@@ -67,10 +65,10 @@ pub fn radix_sort_by_key_u64(
         }
 
         // scan global block sum array
-        crate::cumsum::sum_scan_blelloch(ctx, &mut d_scan_block_sums, &d_block_sums)?;
+        crate::cumsum::sum_scan_blelloch(stream, &mut d_scan_block_sums, &d_block_sums)?;
 
         glbl_shuffle(
-            ctx,
+            stream,
             grid_sz,
             block_sz,
             d_in,
@@ -88,7 +86,7 @@ pub fn radix_sort_by_key_u64(
 
 #[allow(clippy::too_many_arguments)]
 fn gpu_radix_sort_local(
-    ctx: &std::sync::Arc<CudaContext>,
+    stream: &std::sync::Arc<CudaStream>,
     cfg: cudarc::driver::LaunchConfig,
     d_out: &mut CudaSlice<u64>,
     d_prefix_sums: &mut CudaSlice<u32>,
@@ -100,9 +98,8 @@ fn gpu_radix_sort_local(
     idxout_dev: &mut CudaSlice<u32>,
 ) -> Result<(), cudarc::driver::DriverError> {
     let d_in_len = d_in.len() as u32;
-    let stream = ctx.default_stream();
     let gpu_radix_sort_local = crate::get_or_load_func(
-        ctx,
+        stream.context(),
         "gpu_radix_sort_local",
         del_cudarc_kernel::SORT_BY_KEY_U64,
     )?;
@@ -122,7 +119,7 @@ fn gpu_radix_sort_local(
 
 #[allow(clippy::too_many_arguments)]
 fn glbl_shuffle(
-    ctx: &std::sync::Arc<CudaContext>,
+    stream: &std::sync::Arc<CudaStream>,
     grid_sz: u32,
     block_sz: u32,
     d_in: &mut CudaSlice<u64>,
@@ -141,9 +138,11 @@ fn glbl_shuffle(
         block_dim: (block_sz, 1, 1),
         shared_mem_bytes: 0,
     };
-    let stream = ctx.default_stream();
-    let gpu_glbl_shuffle =
-        crate::get_or_load_func(ctx, "gpu_glbl_shuffle", del_cudarc_kernel::SORT_BY_KEY_U64)?;
+    let gpu_glbl_shuffle = crate::get_or_load_func(
+        stream.context(),
+        "gpu_glbl_shuffle",
+        del_cudarc_kernel::SORT_BY_KEY_U64,
+    )?;
     let mut builder = stream.launch_builder(&gpu_glbl_shuffle);
     builder.arg(d_in);
     builder.arg(d_out);
@@ -184,7 +183,7 @@ fn test_u64() -> Result<(), cudarc::driver::DriverError> {
         // dbg!(dev.dtoh_sync_copy(&idxin_dev));
         // let mut idxout_dev = dev.alloc_zeros(idxin_dev.len())?;
         let mut vio_dev = stream.memcpy_stod(&vin)?;
-        radix_sort_by_key_u64(&ctx, &mut vio_dev, &mut idxin_dev)?;
+        radix_sort_by_key_u64(&stream, &mut vio_dev, &mut idxin_dev)?;
         let vout0 = {
             // naive cpu computation
             let mut vout0 = vin.clone();
