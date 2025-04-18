@@ -1,8 +1,26 @@
-pub const CUMSUM: &str = include_str!(concat!(env!("OUT_DIR"), "/cumsum.ptx"));
-pub const GET_FLAGGED_ELEMENT: &str = include_str!(concat!(env!("OUT_DIR"), "/get_flagged_element.ptx"));
-pub const SIMPLE: &str = include_str!(concat!(env!("OUT_DIR"), "/simple.ptx"));
-pub const SORT_BY_KEY_U32: &str = include_str!(concat!(env!("OUT_DIR"), "/sort_by_key_u32.ptx"));
-pub const SORT_BY_KEY_U64: &str = include_str!(concat!(env!("OUT_DIR"), "/sort_by_key_u64.ptx"));
-pub const SORT_U32: &str = include_str!(concat!(env!("OUT_DIR"), "/sort_u32.ptx"));
-pub const SORT_U64: &str = include_str!(concat!(env!("OUT_DIR"), "/sort_u64.ptx"));
-pub const UTIL: &str = include_str!(concat!(env!("OUT_DIR"), "/util.ptx"));
+pub use cudarc;
+pub mod cumsum;
+pub mod get_flagged_element;
+pub mod sort_by_key_u32;
+pub mod sort_by_key_u64;
+pub mod sort_u32;
+pub mod sort_u64;
+pub mod util;
+
+pub fn get_or_load_func(
+    ctx: &std::sync::Arc<cudarc::driver::CudaContext>,
+    module_name: &str,
+    ptx: &'static str,
+) -> Result<cudarc::driver::CudaFunction, cudarc::driver::DriverError> {
+    /*
+    if !ctx.has_func(module_name, module_name) {
+        // Leaking the string here is a bit sad but we need a &'static str and this is only
+        // done once per kernel name.
+        let static_module_name = Box::leak(module_name.to_string().into_boxed_str());
+        ctx.load_ptx(ptx.into(), module_name, &[static_module_name])?
+    }
+    Ok(ctx.get_func(module_name, module_name).unwrap())
+     */
+    let cuda_module = ctx.load_module(ptx.into())?;
+    cuda_module.load_function(module_name)
+}
