@@ -1,0 +1,12 @@
+[package]
+name = "del-cudarc-sys"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+del-cudarc-kernel.workspace = true
+cudarc.workspace = true
+
+
+
+

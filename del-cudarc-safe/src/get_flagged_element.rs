@@ -41,6 +41,6 @@ fn test_get_flagged_element() -> Result<(), cudarc::driver::result::DriverError>
     let ielem2flag = stream.memcpy_stod(&vec![1u32, 0, 1, 1, 0])?;
     let oelem2val = get_flagged_element(&stream, &ielem2val, &ielem2flag)?;
     let oelem2val_cpu = stream.memcpy_dtov(&oelem2val)?;
-    dbg!(oelem2val_cpu);
+    assert_eq!(oelem2val_cpu, [7, 1, 5]);
     Ok(())
 }

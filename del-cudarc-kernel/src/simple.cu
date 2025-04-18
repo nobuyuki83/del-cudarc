@@ -40,5 +40,17 @@ vector_add(float *C, const float *A, const float *B, int numElements)
         C[i] = A[i] + B[i];
     }
 }
+
+__global__ void
+one_up(uint32_t *A, int numElements)
+{
+    int i = blockDim.x * blockIdx.x + threadIdx.x;
+
+    if (i < numElements)
+    {
+        A[i] += 1;
+    }
+}
+
 }
 

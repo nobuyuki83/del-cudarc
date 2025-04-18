@@ -87,12 +87,29 @@ pub unsafe fn from_raw_parts_mut<'a, T>(
     stream: std::sync::Arc<CudaStream>,
     ptr: cudarc::driver::sys::CUdeviceptr,
     len: usize,
-) -> CudaViewMut<'a, T> {
-    let slice = unsafe { stream.upgrade_device_ptr(ptr, len) };
-    let temp_view = slice.slice(..);
+) -> CudaViewMut<'a, T>
+where
+    T: std::fmt::Debug + cudarc::driver::DeviceRepr,
+{
+    let mut slice = unsafe { stream.upgrade_device_ptr(ptr, len) };
+    let temp_view: CudaViewMut<T> = slice.slice_mut(..);
+    /*
+    {
+        dbg!("huga");
+        let data_cpu = stream.memcpy_dtov(&temp_view).unwrap();
+        dbg!(data_cpu);
+    }
+     */
     // extend lifetime
-    let view = unsafe { std::mem::transmute::<CudaView<'_, T>, CudaViewMut<'a, T>>(temp_view) };
-    // don't free the fake slice
-    slice.leak();
+    let view: CudaViewMut<'a, T> =
+        unsafe { std::mem::transmute::<CudaViewMut<'_, T>, CudaViewMut<'a, T>>(temp_view) };
+    /*
+    {
+        dbg!("hugahuga");
+        let data_cpu = stream.memcpy_dtov(&view).unwrap();
+        dbg!(data_cpu);
+    }
+     */
+    slice.leak(); // don't free the fake slice
     view
 }
