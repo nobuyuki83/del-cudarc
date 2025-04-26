@@ -25,7 +25,7 @@ dlpack = "0.2.0"
 del-cudarc-kernel = { path = "del-cudarc-kernel" }
 del-cudarc-sys = { path = "del-cudarc-sys" }
 # this version comes from candle library
-cudarc = { version = "=0.16.0", features = ["std", "driver", "nvrtc", "cuda-version-from-build-system", "dynamic-linking"], default-features = false}
+cudarc = { version = "=0.16.2", features = ["std", "driver", "nvrtc", "cuda-version-from-build-system", "dynamic-linking"], default-features = false}
 
 ############
 # for deploy
