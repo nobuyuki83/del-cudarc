@@ -1,4 +1,5 @@
 use std::os::raw::c_void;
+pub use cudarc::driver::sys::*;
 
 pub fn load_function_in_module(
     ptx: &str,
@@ -51,6 +52,7 @@ pub struct Builder {
     pub cu_stream: cudarc::driver::sys::CUstream,
     pub args: Vec<*mut c_void>,
     pub vec_i32: Vec<i32>,
+    pub vec_f32: Vec<f32>,
 }
 
 impl Builder {
@@ -59,6 +61,7 @@ impl Builder {
             cu_stream,
             args: vec![],
             vec_i32: vec![],
+            vec_f32: vec![],
         }
     }
 
@@ -70,6 +73,13 @@ impl Builder {
     pub fn arg_i32(&mut self, val: i32) {
         self.vec_i32.push(val);
         let val_ref = self.vec_i32.last().unwrap();
+        let ptr = (val_ref as *const _) as *mut std::ffi::c_void;
+        self.args.push(ptr);
+    }
+
+    pub fn arg_f32(&mut self, val: f32) {
+        self.vec_f32.push(val);
+        let val_ref = self.vec_f32.last().unwrap();
         let ptr = (val_ref as *const _) as *mut std::ffi::c_void;
         self.args.push(ptr);
     }
