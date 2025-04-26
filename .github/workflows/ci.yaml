@@ -30,6 +30,9 @@ jobs:
           ./venv/Scripts/activate
           pip install maturin
           pip install pytest
+          pip install numpy
+          pip install torch
           cd del-cudarc-dlpack
           maturin develop
+          python tests/rust_interop0.py
           
