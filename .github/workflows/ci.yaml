@@ -28,4 +28,8 @@ jobs:
         run: |
           python -m venv venv
           ./venv/Scripts/activate
+          pip install maturin
+          pip install pytest
+          cd del-cudarc-dlpack
+          maturin develop
           
