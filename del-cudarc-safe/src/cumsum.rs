@@ -173,6 +173,7 @@ fn test() -> Result<(), cudarc::driver::DriverError> {
         let mut vout_dev = stream.alloc_zeros::<u32>(vin_dev.len())?;
         sum_scan_blelloch(&stream, &mut vout_dev, &vin_dev)?;
         let vout = stream.memcpy_dtov(&vout_dev)?;
+        assert_eq!(vout[0], 0);
         assert_eq!(vout.len(), n + 1);
         for i in 0..n {
             assert_eq!(

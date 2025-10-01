@@ -9,6 +9,7 @@ void gpu_set_consecutive_sequence(
 {
     int i_d_out = blockDim.x * blockIdx.x + threadIdx.x;
     if( i_d_out >= num_d_out ){ return; }
+    //
     d_out[i_d_out] = i_d_out;
 }
 
