@@ -14,16 +14,10 @@ macro_rules! cuda_check {
     };
 }
 
-pub fn load_function_in_module(
-    ptx: &str,
-    func_name: &str,
-) -> (
-    cu::CUfunction,
-    cu::CUmodule,
-) {
+pub fn load_function_in_module(ptx: &str, func_name: &str) -> (cu::CUfunction, cu::CUmodule) {
     let ptx = std::ffi::CString::new(ptx).unwrap();
     let mut module: cu::CUmodule = std::ptr::null_mut();
-    cuda_check!( cu::cuModuleLoadDataEx(
+    cuda_check!(cu::cuModuleLoadDataEx(
         &mut module,
         ptx.as_ptr() as *const _,
         0,
@@ -32,9 +26,11 @@ pub fn load_function_in_module(
     ));
     let mut function: cu::CUfunction = std::ptr::null_mut();
     let func_name_str = std::ffi::CString::new(func_name).unwrap();
-    cuda_check!(
-        cu::cuModuleGetFunction(&mut function, module, func_name_str.as_ptr())
-    );
+    cuda_check!(cu::cuModuleGetFunction(
+        &mut function,
+        module,
+        func_name_str.as_ptr()
+    ));
     (function, module)
 }
 
@@ -46,7 +42,7 @@ pub fn create_stream_in_current_context() -> cu::CUstream {
 
 pub fn get_current_context() -> cu::CUcontext {
     let mut raw: cu::CUcontext = std::ptr::null_mut();
-    cuda_check!( cu::cuCtxGetCurrent(&mut raw) );
+    cuda_check!(cu::cuCtxGetCurrent(&mut raw));
     assert!(!raw.is_null(), "no current CUDA context");
     raw
 }
@@ -111,33 +107,30 @@ impl Builder {
     /// undefined if function is invalid
     pub fn launch_kernel(&mut self, function: cudarc::driver::sys::CUfunction, n: u32) {
         let grid_dim = n.div_ceil(256); // n + 255) / 256;
-        cuda_check!(
-            cu::cuLaunchKernel(
-                function,
-                grid_dim,
-                1,
-                1,
-                256,
-                1,
-                1,
-                0,
-                self.cu_stream,
-                self.args.as_mut_ptr(),
-                std::ptr::null_mut(),
-            )
-        );
-        cuda_check!( cu::cuStreamSynchronize(self.cu_stream) );
-
+        cuda_check!(cu::cuLaunchKernel(
+            function,
+            grid_dim,
+            1,
+            1,
+            256,
+            1,
+            1,
+            0,
+            self.cu_stream,
+            self.args.as_mut_ptr(),
+            std::ptr::null_mut(),
+        ));
+        cuda_check!(cu::cuStreamSynchronize(self.cu_stream));
     }
 }
 
 pub fn dtoh_vec<T>(dptr: cu::CUdeviceptr, n: usize) -> Vec<T> {
     let mut v: Vec<T> = Vec::with_capacity(n);
-    cuda_check!( cu::cuMemcpyDtoH_v2(
+    cuda_check!(cu::cuMemcpyDtoH_v2(
         v.as_mut_ptr() as *mut std::ffi::c_void,
         dptr,
         n * size_of::<T>(),
-    ) );
+    ));
     unsafe { v.set_len(n) };
     v
 }
