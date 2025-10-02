@@ -3,14 +3,28 @@
 extern "C" {
 
 __global__
-void gpu_set_consecutive_sequence(
-    uint32_t* d_out,
-    uint32_t num_d_out)
+void set_consecutive_sequence(
+    uint32_t num_d_out,
+    uint32_t* d_out)
 {
     int i_d_out = blockDim.x * blockIdx.x + threadIdx.x;
     if( i_d_out >= num_d_out ){ return; }
     //
     d_out[i_d_out] = i_d_out;
+}
+
+__global__
+void shift_array_right(
+    uint32_t n,
+    uint32_t* din,
+    uint32_t* dout
+)
+{
+    int i = blockDim.x * blockIdx.x + threadIdx.x;
+    if( i >= n ){ return; }
+    //
+    if( i == 0 ){ return; }
+    dout[i] = din[i-1];
 }
 
 __global__
@@ -44,5 +58,32 @@ void set_value_at_mask(
         elem2value[i_elem] = set_value;
     }
 }
+
+__global__
+void sort_indexed_array(
+    unsigned int n,
+    const uint32_t* p2idx,
+    uint32_t* idx2q
+)
+{
+    int p = blockDim.x * blockIdx.x + threadIdx.x;
+    if( p >= n ){ return; }
+    //
+    const uint32_t idx0 = p2idx[p];
+    const uint32_t idx1 = p2idx[p+1];
+    for(uint32_t idx=idx0;idx<idx1;++idx){
+        uint32_t idx_min = idx;
+        for(uint32_t jdx=idx+1;jdx<idx1;++jdx){
+            if( idx2q[jdx] < idx2q[idx_min] ){
+                idx_min = jdx;
+            }
+        }
+        const uint32_t tmp = idx2q[idx];
+        idx2q[idx] = idx2q[idx_min];
+        idx2q[idx_min] = tmp;
+    }
+
+}
+
 
 }

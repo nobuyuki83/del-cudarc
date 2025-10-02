@@ -165,7 +165,7 @@ fn test() -> Result<(), cudarc::driver::DriverError> {
     for (n, v) in nvs {
         let vin: Vec<u32> = {
             let mut vin = vec![v; n];
-            vin.push(0u32);
+            vin.push(0u32); // push 0 at the end
             vin
         };
         let stream = ctx.default_stream();

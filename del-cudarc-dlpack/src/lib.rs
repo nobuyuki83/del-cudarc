@@ -1,3 +1,4 @@
+use del_cudarc_sys::LaunchConfig;
 use dlpack::ManagedTensor;
 use pyo3::prelude::*;
 use pyo3::types::{PyAnyMethods, PyCapsule};
@@ -42,7 +43,7 @@ fn set_consecutive_sequence(_py: Python, obj: &pyo3::Bound<'_, PyAny>) -> PyResu
                 let mut builder = del_cudarc_sys::Builder::new(stream);
                 builder.arg_data(&tensor.data);
                 builder.arg_i32(total_elements as i32);
-                builder.launch_kernel(function, total_elements as u32);
+                builder.launch_kernel(function, LaunchConfig::for_num_elems(total_elements as u32));
                 cuStreamDestroy_v2(stream);
             }
             _ => println!("Unknown device type {}", tensor.ctx.device_type),

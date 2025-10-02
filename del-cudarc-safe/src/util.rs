@@ -8,12 +8,12 @@ pub fn set_consecutive_sequence(
     let cfg = cudarc::driver::LaunchConfig::for_num_elems(num_d_in);
     let func = crate::get_or_load_func(
         stream.context(),
-        "gpu_set_consecutive_sequence",
+        "set_consecutive_sequence",
         del_cudarc_kernel::UTIL,
     )?;
     let mut builder = stream.launch_builder(&func);
-    builder.arg(d_in);
     builder.arg(&num_d_in);
+    builder.arg(d_in);
     unsafe { builder.launch(cfg) }?;
     Ok(())
 }
