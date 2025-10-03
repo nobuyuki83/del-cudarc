@@ -187,7 +187,8 @@ pub struct Builder {
     pub args: Vec<*mut std::ffi::c_void>,
     pub vec_i32: Vec<i32>,
     pub vec_f32: Vec<f32>,
-    pub keep_dptr: Vec<Box<cu::CUdeviceptr>>, // to get stable pointer to the CUdeviceptr
+    pub vec_u8: Vec<u8>,
+    pub vec_dptr: Vec<Box<cu::CUdeviceptr>>, // to get stable pointer to the CUdeviceptr
 }
 
 impl Builder {
@@ -197,7 +198,8 @@ impl Builder {
             args: vec![],
             vec_i32: vec![],
             vec_f32: vec![],
-            keep_dptr: vec![],
+            vec_u8: vec![],
+            vec_dptr: vec![],
         }
     }
 
@@ -211,7 +213,7 @@ impl Builder {
         let ptr: *mut std::ffi::c_void =
             (&mut *slot as *mut cu::CUdeviceptr) as *mut std::ffi::c_void;
         self.args.push(ptr);
-        self.keep_dptr.push(slot);
+        self.vec_dptr.push(slot);
     }
 
     pub fn arg_i32(&mut self, val: i32) {
@@ -224,6 +226,14 @@ impl Builder {
     pub fn arg_f32(&mut self, val: f32) {
         self.vec_f32.push(val);
         let val_ref = self.vec_f32.last().unwrap();
+        let ptr = (val_ref as *const _) as *mut std::ffi::c_void;
+        self.args.push(ptr);
+    }
+
+    pub fn arg_bool(&mut self, val: bool) {
+        assert_eq!(size_of::<bool>(), 1);
+        self.vec_u8.push(val as u8);
+        let val_ref = self.vec_u8.last().unwrap();
         let ptr = (val_ref as *const _) as *mut std::ffi::c_void;
         self.args.push(ptr);
     }
