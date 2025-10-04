@@ -74,7 +74,7 @@ fn test_sort_indexed_array() {
     let stream = crate::create_stream_in_current_context();
     let n = 3;
     let m = 10;
-    let idx2q_in = (0..n * m).map(|v| v).rev().collect::<Vec<u32>>();
+    let idx2q_in = (0..n * m).rev().collect::<Vec<u32>>();
     let p2idx = (0..n + 1).map(|v| v * m).collect::<Vec<u32>>();
     let idx2q_trg = (0..n)
         .rev()
