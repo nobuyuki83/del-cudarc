@@ -3,6 +3,8 @@ use std::marker::PhantomData;
 pub mod cumsum;
 pub mod util;
 
+pub mod sort_by_key_u32;
+
 pub mod cu {
     pub use cudarc::driver::sys::*;
 }
@@ -109,6 +111,21 @@ impl<T> CuVec<T> {
             dptr,
             n,
             is_free_at_drop: true,
+            phantom: PhantomData,
+        }
+    }
+
+    pub fn alloc_zeros(n: usize, stream: cu::CUstream) -> Self {
+        let a = CuVec::<T>::with_capacity(n);
+        a.set_zeros(stream);
+        a
+    }
+
+    pub fn from_dptr(dptr: cu::CUdeviceptr, n: usize) -> Self {
+        crate::CuVec::<T> {
+            dptr,
+            n,
+            is_free_at_drop: false,
             phantom: PhantomData,
         }
     }

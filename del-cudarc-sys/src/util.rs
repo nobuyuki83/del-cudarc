@@ -90,3 +90,45 @@ fn test_sort_indexed_array() {
     drop(idx2q); // drop before destroy context
     cuda_check!(cu::cuDevicePrimaryCtxRelease_v2(dev));
 }
+
+pub fn permute(
+    stream: cu::CUstream,
+    new2data: &CuVec<u32>,
+    new2old: &CuVec<u32>,
+    old2data: &CuVec<u32>,
+) -> Result<(), cudarc::driver::DriverError> {
+    let n = new2data.n;
+    assert_eq!(new2old.n, n);
+    assert_eq!(old2data.n, n);
+    let (func, _mdl) = crate::load_function_in_module(del_cudarc_kernel::UTIL, "permute");
+    /*
+    let mut builder = stream.launch_builder(&func);
+    builder.arg(&n);
+    builder.arg(new2data);
+    builder.arg(new2old);
+    builder.arg(old2data);
+    unsafe { builder.launch(cfg) }?;
+     */
+    let mut builder = crate::Builder::new(stream);
+    builder.arg_i32(n as i32);
+    builder.arg_dptr(new2data.dptr);
+    builder.arg_dptr(new2old.dptr);
+    builder.arg_dptr(old2data.dptr);
+    builder.launch_kernel(func, LaunchConfig::for_num_elems(n as u32));
+    Ok(())
+}
+
+#[test]
+fn test_permute() {
+    let (dev, _ctx) = crate::init_cuda_and_make_context(0);
+    let stream = crate::create_stream_in_current_context();
+    {
+        let old2data = CuVec::from_slice(&[15u32, 13, 11, 14, 12]);
+        let new2old = CuVec::from_slice(&[4u32, 2, 0, 1, 3]);
+        let new2data = CuVec::<u32>::with_capacity(old2data.n);
+        permute(stream, &new2data, &new2old, &old2data).unwrap();
+        dbg!(new2data.copy_to_host());
+        cuda_check!(cu::cuStreamDestroy_v2(stream));
+    }
+    cuda_check!(cu::cuDevicePrimaryCtxRelease_v2(dev));
+}
