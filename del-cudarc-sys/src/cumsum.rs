@@ -137,8 +137,8 @@ fn block_sums(
 pub fn exclusive_scan(stream: cu::CUstream, vin: &CuVec<u32>, vout: &CuVec<u32>) {
     let n = vin.n;
     assert_eq!(vout.n, n);
-    let (grid_sz, block_sz, d_block_sums) = block_sums(stream, &vout, vin);
-    add_block_sums_u32(stream, &vout, &d_block_sums, n as u32, grid_sz, block_sz);
+    let (grid_sz, block_sz, d_block_sums) = block_sums(stream, vout, vin);
+    add_block_sums_u32(stream, vout, &d_block_sums, n as u32, grid_sz, block_sz);
 }
 
 #[test]
