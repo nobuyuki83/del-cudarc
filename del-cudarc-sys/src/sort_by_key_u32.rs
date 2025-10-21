@@ -69,7 +69,8 @@ pub fn radix_sort_by_key_u32(
         }
 
         // scan global block sum array
-        let d_scan_block_sums = crate::cumsum::cumsum(stream, &d_block_sums);
+        let d_scan_block_sums = CuVec::<u32>::with_capacity(d_block_sums.n);
+        crate::cumsum::exclusive_scan(stream, &d_block_sums, &d_scan_block_sums);
 
         {
             let d_in_len = d_in.n as u32;

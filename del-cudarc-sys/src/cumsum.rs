@@ -134,13 +134,11 @@ fn block_sums(
 
 /// exclusive scan
 /// `vout_dev` does not need to be zeros
-pub fn cumsum(stream: cu::CUstream, vin: &CuVec<u32>) -> CuVec<u32> {
+pub fn exclusive_scan(stream: cu::CUstream, vin: &CuVec<u32>, vout: &CuVec<u32>) {
     let n = vin.n;
-    let vout: CuVec<u32> = CuVec::with_capacity(n);
-    assert_eq!(n, vin.n);
+    assert_eq!(vout.n, n);
     let (grid_sz, block_sz, d_block_sums) = block_sums(stream, &vout, vin);
     add_block_sums_u32(stream, &vout, &d_block_sums, n as u32, grid_sz, block_sz);
-    vout
 }
 
 #[test]
@@ -164,7 +162,8 @@ fn test_hoge() {
             vin
         };
         let d_vin = CuVec::from_slice(&h_vin);
-        let d_vout = cumsum(stream, &d_vin);
+        let d_vout = CuVec::with_capacity(d_vin.n);
+        exclusive_scan(stream, &d_vin, &d_vout);
         let h_vout = d_vout.copy_to_host();
         assert_eq!(h_vout[0], 0);
         assert_eq!(h_vout.len(), n + 1);
