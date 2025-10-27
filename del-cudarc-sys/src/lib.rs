@@ -1,14 +1,17 @@
 use std::marker::PhantomData;
 
 pub mod cumsum;
-pub mod util;
+pub mod array1d;
 
+pub mod offset_array;
 pub mod sort_by_key_u32;
+pub mod sorted_array1d;
 
 pub mod cu {
     pub use cudarc::driver::sys::*;
 }
 
+/*
 #[macro_export]
 macro_rules! cuda_check {
     ($e:expr) => {
@@ -19,8 +22,24 @@ macro_rules! cuda_check {
         }
     };
 }
+ */
 
-pub fn load_function_in_module(ptx: &str, func_name: &str) -> (cu::CUfunction, cu::CUmodule) {
+#[macro_export]
+macro_rules! cuda_check {
+    ($e:expr) => {{
+        #[allow(clippy::macro_metavars_in_unsafe)]
+        let res = unsafe { $e };
+        if res != cu::CUresult::CUDA_SUCCESS {
+            // エラーならErr(String)を返す
+            Err(format!("CUDA Error: {:?}", res))
+        } else {
+            // 成功ならOk(())
+            Ok(())
+        }
+    }};
+}
+
+pub fn load_function_in_module(ptx: &str, func_name: &str) -> Result<(cu::CUfunction, cu::CUmodule), String> {
     let ptx = std::ffi::CString::new(ptx).unwrap();
     let mut module: cu::CUmodule = std::ptr::null_mut();
     cuda_check!(cu::cuModuleLoadDataEx(
@@ -29,21 +48,21 @@ pub fn load_function_in_module(ptx: &str, func_name: &str) -> (cu::CUfunction, c
         0,
         std::ptr::null::<u32>() as *mut cu::CUjit_option,
         std::ptr::null::<u32>() as *mut *mut std::ffi::c_void,
-    ));
+    ))?;
     let mut function: cu::CUfunction = std::ptr::null_mut();
     let func_name_str = std::ffi::CString::new(func_name).unwrap();
     cuda_check!(cu::cuModuleGetFunction(
         &mut function,
         module,
         func_name_str.as_ptr()
-    ));
-    (function, module)
+    ))?;
+    Ok((function, module))
 }
 
-pub fn create_stream_in_current_context() -> cu::CUstream {
+pub fn create_stream_in_current_context() -> Result<cu::CUstream, String> {
     let mut stream: cu::CUstream = std::ptr::null_mut();
-    cuda_check!(cu::cuStreamCreate(&mut stream, 0));
-    stream
+    cuda_check!(cu::cuStreamCreate(&mut stream, 0))?;
+    Ok(stream)
 }
 
 pub fn stream_from_u64(stream_ptr: u64) -> cu::CUstream {
@@ -51,21 +70,21 @@ pub fn stream_from_u64(stream_ptr: u64) -> cu::CUstream {
     stream_ptr as usize as *mut std::ffi::c_void as cu::CUstream
 }
 
-pub fn get_current_context() -> cu::CUcontext {
+pub fn get_current_context() -> Result<cu::CUcontext, String> {
     let mut raw: cu::CUcontext = std::ptr::null_mut();
-    cuda_check!(cu::cuCtxGetCurrent(&mut raw));
+    cuda_check!(cu::cuCtxGetCurrent(&mut raw))?;
     assert!(!raw.is_null(), "no current CUDA context");
-    raw
+    Ok(raw)
 }
 
-pub fn init_cuda_and_make_context(device_id: i32) -> (cu::CUdevice, cu::CUcontext) {
-    cuda_check!(cu::cuInit(0));
+pub fn init_cuda_and_make_context(device_id: i32) -> Result<(cu::CUdevice, cu::CUcontext), String> {
+    cuda_check!(cu::cuInit(0))?;
     let mut dev: cu::CUdevice = 0;
-    cuda_check!(cu::cuDeviceGet(&mut dev, device_id));
+    cuda_check!(cu::cuDeviceGet(&mut dev, device_id))?;
     let mut ctx: cu::CUcontext = std::ptr::null_mut();
-    cuda_check!(cu::cuDevicePrimaryCtxRetain(&mut ctx, dev));
-    cuda_check!(cu::cuCtxSetCurrent(ctx));
-    (dev, ctx)
+    cuda_check!(cu::cuDevicePrimaryCtxRetain(&mut ctx, dev))?;
+    cuda_check!(cu::cuCtxSetCurrent(ctx))?;
+    Ok((dev, ctx))
 }
 
 /// do not implement "Copy" trait.
@@ -86,39 +105,39 @@ impl<T> CuVec<T> {
         }
     }
 
-    pub fn with_capacity(n: usize) -> Self {
+    pub fn with_capacity(n: usize) -> Result<Self, String> {
         let mut dptr: cu::CUdeviceptr = 0;
-        cuda_check!(cu::cuMemAlloc_v2(&mut dptr, n * size_of::<T>()));
-        Self {
+        cuda_check!(cu::cuMemAlloc_v2(&mut dptr, n * size_of::<T>()))?;
+        Ok(Self {
             dptr,
             n,
             is_free_at_drop: true,
             phantom: PhantomData,
-        }
+        })
     }
 
-    pub fn from_slice(s: &[T]) -> Self {
+    pub fn from_slice(s: &[T]) -> Result<Self, String> {
         let n = s.len();
         let mut dptr: cu::CUdeviceptr = 0;
         let bytes = size_of_val(s);
-        cuda_check!(cu::cuMemAlloc_v2(&mut dptr, bytes));
+        cuda_check!(cu::cuMemAlloc_v2(&mut dptr, bytes))?;
         cuda_check!(cu::cuMemcpyHtoD_v2(
             dptr,
             s.as_ptr() as *const std::ffi::c_void,
             bytes,
-        ));
-        Self {
+        ))?;
+        Ok(Self {
             dptr,
             n,
             is_free_at_drop: true,
             phantom: PhantomData,
-        }
+        })
     }
 
-    pub fn alloc_zeros(n: usize, stream: cu::CUstream) -> Self {
-        let a = CuVec::<T>::with_capacity(n);
-        a.set_zeros(stream);
-        a
+    pub fn alloc_zeros(n: usize, stream: cu::CUstream) -> Result<Self, String> {
+        let a = CuVec::<T>::with_capacity(n)?;
+        a.set_zeros(stream)?;
+        Ok(a)
     }
 
     pub fn from_dptr(dptr: cu::CUdeviceptr, n: usize) -> Self {
@@ -131,36 +150,37 @@ impl<T> CuVec<T> {
     }
 
     #[allow(clippy::not_unsafe_ptr_arg_deref)]
-    pub fn set_zeros(&self, stream: cu::CUstream) {
+    pub fn set_zeros(&self, stream: cu::CUstream) -> Result<(), String> {
         cuda_check!(cu::cuMemsetD8Async(
             self.dptr,
             0u8,
             self.n * size_of::<T>(),
             stream
-        ));
-        cuda_check!(cu::cuStreamSynchronize(stream));
+        ))?;
+        cuda_check!(cu::cuStreamSynchronize(stream))?;
+        Ok(())
     }
 
-    pub fn copy_to_host(&self) -> Vec<T> {
+    pub fn copy_to_host(&self) -> Result<Vec<T>, String> {
         let mut v: Vec<T> = Vec::with_capacity(self.n);
         cuda_check!(cu::cuMemcpyDtoH_v2(
             v.as_mut_ptr() as *mut std::ffi::c_void,
             self.dptr,
             self.n * size_of::<T>(),
-        ));
+        ))?;
         unsafe { v.set_len(self.n) };
-        v
+        Ok(v)
     }
 
-    pub fn last(&self) -> u32 {
+    pub fn last(&self) -> Result<u32, String> {
         let dptr0 = self.dptr + ((self.n - 1) * size_of::<T>()) as u64;
         let mut last = 0u32;
         cuda_check!(cu::cuMemcpyDtoH_v2(
             (&mut last as *mut u32) as *mut std::ffi::c_void,
             dptr0,
             size_of::<T>(),
-        ));
-        last
+        ))?;
+        Ok(last)
     }
 }
 
@@ -168,22 +188,23 @@ impl<T> Drop for CuVec<T> {
     fn drop(&mut self) {
         if self.is_free_at_drop {
             assert_ne!(self.dptr, 0);
-            cuda_check!(cu::cuMemFree_v2(self.dptr));
+            cuda_check!(cu::cuMemFree_v2(self.dptr)).unwrap();
             self.dptr = 0;
         }
     }
 }
 
-pub fn malloc_device<T>(n: usize) -> cu::CUdeviceptr {
+pub fn malloc_device<T>(n: usize) -> Result<cu::CUdeviceptr, String> {
     let mut dptr: cu::CUdeviceptr = 0;
-    cuda_check!(cu::cuMemAlloc_v2(&mut dptr, n * size_of::<T>()));
-    dptr
+    cuda_check!(cu::cuMemAlloc_v2(&mut dptr, n * size_of::<T>()))?;
+    Ok(dptr)
 }
 
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
-pub fn memset_zeros_32(dptr: cu::CUdeviceptr, n: usize, stream: cu::CUstream) {
-    cuda_check!(cu::cuMemsetD8Async(dptr, 0u8, n * 4, stream));
-    cuda_check!(cu::cuStreamSynchronize(stream));
+pub fn memset_zeros_32(dptr: cu::CUdeviceptr, n: usize, stream: cu::CUstream) -> Result<(), String> {
+    cuda_check!(cu::cuMemsetD8Async(dptr, 0u8, n * 4, stream))?;
+    cuda_check!(cu::cuStreamSynchronize(stream))?;
+    Ok(())
 }
 
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
@@ -192,11 +213,12 @@ pub fn memcpy_d2d_32(
     d_src: cu::CUdeviceptr,
     n: usize,
     stream: cu::CUstream,
-) {
+) -> Result<(), String> {
     // ---- Device→Device コピー（非同期）----
-    cuda_check!(cu::cuMemcpyDtoDAsync_v2(d_dst, d_src, n * 4, stream));
+    cuda_check!(cu::cuMemcpyDtoDAsync_v2(d_dst, d_src, n * 4, stream))?;
     // 必要に応じて同期
-    cuda_check!(cu::cuStreamSynchronize(stream));
+    cuda_check!(cu::cuStreamSynchronize(stream))?;
+    Ok(())
 }
 
 pub struct Builder {
@@ -259,7 +281,7 @@ impl Builder {
     /// unde
     /// fined if function is invalid
     #[allow(clippy::not_unsafe_ptr_arg_deref)]
-    pub fn launch_kernel(&mut self, function: cu::CUfunction, cfg: LaunchConfig) {
+    pub fn launch_kernel(&mut self, function: cu::CUfunction, cfg: LaunchConfig) -> Result<(), String> {
         cuda_check!(cu::cuLaunchKernel(
             function,
             cfg.grid_dim.0,
@@ -272,8 +294,9 @@ impl Builder {
             self.cu_stream,
             self.args.as_mut_ptr(),
             std::ptr::null_mut(),
-        ));
-        cuda_check!(cu::cuStreamSynchronize(self.cu_stream));
+        ))?;
+        cuda_check!(cu::cuStreamSynchronize(self.cu_stream))?;
+        Ok(())
     }
 }
 

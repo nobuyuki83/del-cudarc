@@ -9,7 +9,7 @@ pub fn set_consecutive_sequence(
     let func = crate::get_or_load_func(
         stream.context(),
         "set_consecutive_sequence",
-        del_cudarc_kernel::UTIL,
+        del_cudarc_kernel::ARRAY1D,
     )?;
     let mut builder = stream.launch_builder(&func);
     builder.arg(&num_d_in);
@@ -28,7 +28,7 @@ pub fn permute(
     assert_eq!(new2old.len(), n);
     assert_eq!(old2data.len(), n);
     let cfg = cudarc::driver::LaunchConfig::for_num_elems(n as u32);
-    let func = crate::get_or_load_func(stream.context(), "permute", del_cudarc_kernel::UTIL)?;
+    let func = crate::get_or_load_func(stream.context(), "permute", del_cudarc_kernel::ARRAY1D)?;
     let mut builder = stream.launch_builder(&func);
     builder.arg(&n);
     builder.arg(new2data);
@@ -52,7 +52,7 @@ pub fn set_value_at_mask(
     let func = crate::get_or_load_func(
         stream.context(),
         "set_value_at_mask",
-        del_cudarc_kernel::UTIL,
+        del_cudarc_kernel::ARRAY1D,
     )?;
     let mut builder = stream.launch_builder(&func);
     builder.arg(&n);

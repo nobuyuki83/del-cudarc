@@ -117,12 +117,13 @@ void gpu_prescan(unsigned int* const d_out,
 
 
 __global__
-void gpu_add_block_sums(unsigned int* const d_out,
-	unsigned int* const d_block_sums,
-	const size_t numElems)
+void gpu_add_block_sums(uint32_t* const d_out,
+	const uint32_t* const d_block_sums,
+	const uint32_t numElems)
 {
 	//unsigned int glbl_t_idx = blockDim.x * blockIdx.x + threadIdx.x;
 	unsigned int d_block_sum_val = d_block_sums[blockIdx.x];
+	//printf("%d %d %d\n", d_block_sums[0], d_block_sums[1], blockIdx.x);
 
 	//unsigned int d_in_val_0 = 0;
 	//unsigned int d_in_val_1 = 0;
@@ -130,11 +131,13 @@ void gpu_add_block_sums(unsigned int* const d_out,
 	// Simple implementation's performance is not significantly (if at all)
 	//  better than previous verbose implementation
 	unsigned int cpy_idx = 2 * blockIdx.x * blockDim.x + threadIdx.x;
+    //printf("(%d %d %d) --> %d %d %d\n", blockIdx.x, blockDim.x, threadIdx.x, cpy_idx, numElems, d_block_sum_val);
 	if (cpy_idx < numElems)
 	{
 		d_out[cpy_idx] += d_block_sum_val;
-		if (cpy_idx + blockDim.x < numElems)
+		if (cpy_idx + blockDim.x < numElems) {
 			d_out[cpy_idx + blockDim.x] +=  d_block_sum_val;
+	    }
 	}
 
 	//if (2 * glbl_t_idx < numElems)

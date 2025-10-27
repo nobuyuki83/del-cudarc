@@ -9,8 +9,10 @@ fn main() {
     println!("cargo:rerun-if-changed=src/sort_by_key_u64.cu");
     println!("cargo:rerun-if-changed=src/cumsum.cu");
     println!("cargo:rerun-if-changed=src/sort_u32.cu");
-    println!("cargo:rerun-if-changed=src/sort_u6.cu");
-    println!("cargo:rerun-if-changed=src/util.cu");
+    println!("cargo:rerun-if-changed=src/sort_u64.cu");
+    println!("cargo:rerun-if-changed=src/array1d.cu");
+    println!("cargo:rerun-if-changed=src/sorted_array1d.cu");
+    println!("cargo:rerun-if-changed=src/offset_array.cu");
     //println!("cargo:rustc-env={}",out_dir);
     let builder = bindgen_cuda::Builder::default();
     println!("cargo:info={builder:?}");

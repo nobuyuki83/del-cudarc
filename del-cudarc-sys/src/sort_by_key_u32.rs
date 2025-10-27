@@ -19,12 +19,12 @@ pub fn radix_sort_by_key_u32(
         }
         grid_sz
     };
-    let d_out = CuVec::<u32>::alloc_zeros(d_in.n, stream);
-    let d_prefix_sums = CuVec::<u32>::alloc_zeros(d_in.n, stream);
-    let d_idx_out = CuVec::<u32>::alloc_zeros(d_in.n, stream);
+    let d_out = CuVec::<u32>::alloc_zeros(d_in.n, stream).unwrap();
+    let d_prefix_sums = CuVec::<u32>::alloc_zeros(d_in.n, stream).unwrap();
+    let d_idx_out = CuVec::<u32>::alloc_zeros(d_in.n, stream).unwrap();
     //
     let d_block_sums_len = 4 * grid_sz; // 4-way split
-    let d_block_sums = CuVec::<u32>::alloc_zeros(d_block_sums_len as usize, stream);
+    let d_block_sums = CuVec::<u32>::alloc_zeros(d_block_sums_len as usize, stream).unwrap();
 
     // shared memory consists of 3 arrays the size of the block-wise input
     //  and 2 arrays the size of n in the current n-way split (4)
@@ -52,7 +52,7 @@ pub fn radix_sort_by_key_u32(
             let (func, _mdl) = crate::load_function_in_module(
                 del_cudarc_kernel::SORT_BY_KEY_U32,
                 "gpu_radix_sort_local",
-            );
+            ).unwrap();
             {
                 let mut builder = crate::Builder::new(stream);
                 builder.arg_dptr(d_out.dptr);
@@ -64,12 +64,12 @@ pub fn radix_sort_by_key_u32(
                 builder.arg_i32(max_elems_per_block as i32);
                 builder.arg_dptr(d_idx_in.dptr);
                 builder.arg_dptr(d_idx_out.dptr);
-                builder.launch_kernel(func, cfg);
+                builder.launch_kernel(func, cfg).unwrap();
             }
         }
 
         // scan global block sum array
-        let d_scan_block_sums = CuVec::<u32>::with_capacity(d_block_sums.n);
+        let d_scan_block_sums = CuVec::<u32>::with_capacity(d_block_sums.n).unwrap();
         crate::cumsum::exclusive_scan(stream, &d_block_sums, &d_scan_block_sums);
 
         {
@@ -82,7 +82,7 @@ pub fn radix_sort_by_key_u32(
             let (func, _mdl) = crate::load_function_in_module(
                 del_cudarc_kernel::SORT_BY_KEY_U32,
                 "gpu_glbl_shuffle",
-            );
+            ).unwrap();
             let mut builder = crate::Builder::new(stream);
             builder.arg_dptr(d_in.dptr);
             builder.arg_dptr(d_out.dptr);
@@ -93,7 +93,7 @@ pub fn radix_sort_by_key_u32(
             builder.arg_i32(max_elems_per_block as i32);
             builder.arg_dptr(d_idx_out.dptr);
             builder.arg_dptr(d_idx_in.dptr);
-            builder.launch_kernel(func, cfg);
+            builder.launch_kernel(func, cfg).unwrap();
         }
     }
     Ok(())
@@ -101,7 +101,7 @@ pub fn radix_sort_by_key_u32(
 
 #[test]
 fn test_u32() -> Result<(), cudarc::driver::DriverError> {
-    let (dev, _ctx) = crate::init_cuda_and_make_context(0);
+    let (dev, _ctx) = crate::init_cuda_and_make_context(0).unwrap();
     let ns = [
         13usize,
         1023,
@@ -114,7 +114,7 @@ fn test_u32() -> Result<(), cudarc::driver::DriverError> {
     use rand::Rng;
     use rand_chacha::rand_core::SeedableRng;
     for n in ns {
-        let stream = crate::create_stream_in_current_context();
+        let stream = crate::create_stream_in_current_context().unwrap();
         let mut rng = rand_chacha::ChaChaRng::from_seed([0; 32]);
         let vin = {
             let mut vin: Vec<u32> = vec![];
@@ -122,10 +122,10 @@ fn test_u32() -> Result<(), cudarc::driver::DriverError> {
             vin
         };
         let idxin: Vec<u32> = (0u32..n as u32).collect::<Vec<_>>();
-        let idxin_dev = crate::CuVec::<u32>::from_slice(&idxin);
+        let idxin_dev = crate::CuVec::<u32>::from_slice(&idxin).unwrap();
         // dbg!(dev.dtoh_sync_copy(&idxin_dev));
         // let mut idxout_dev = dev.alloc_zeros(idxin_dev.len())?;
-        let vio_dev = crate::CuVec::<u32>::from_slice(&vin);
+        let vio_dev = crate::CuVec::<u32>::from_slice(&vin).unwrap();
         radix_sort_by_key_u32(stream, &vio_dev, &idxin_dev)?;
         let vout0 = {
             // naive cpu computation
@@ -133,12 +133,12 @@ fn test_u32() -> Result<(), cudarc::driver::DriverError> {
             vout0.sort();
             vout0
         };
-        let vout = vio_dev.copy_to_host();
+        let vout = vio_dev.copy_to_host().unwrap();
         vout.iter().zip(vout0.iter()).for_each(|(a, b)| {
             // println!("{} {}",a,b);
             assert_eq!(a, b, "{} {}", a, b);
         });
-        let idxout = idxin_dev.copy_to_host();
+        let idxout = idxin_dev.copy_to_host().unwrap();
         for jdx in 1..idxout.len() {
             assert!(
                 vin[idxout[jdx - 1] as usize] <= vin[idxout[jdx] as usize],
@@ -154,8 +154,8 @@ fn test_u32() -> Result<(), cudarc::driver::DriverError> {
             // println!("{} {}",a,b);
             assert_eq!(a, b);
         });
-        crate::cuda_check!(cu::cuStreamDestroy_v2(stream));
+        crate::cuda_check!(cu::cuStreamDestroy_v2(stream)).unwrap();
     }
-    crate::cuda_check!(cu::cuDevicePrimaryCtxRelease_v2(dev));
+    crate::cuda_check!(cu::cuDevicePrimaryCtxRelease_v2(dev)).unwrap();
     Ok(())
 }

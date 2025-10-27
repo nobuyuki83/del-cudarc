@@ -2,7 +2,7 @@ use crate::{CuVec, cu};
 
 /// Add each block's total sum to its scan output
 /// in order to get the final, global scanned array
-fn add_block_sums_u32(
+pub fn add_block_sums_u32(
     stream: cu::CUstream,
     vout_dev: &CuVec<u32>,
     d_block_sums: &CuVec<u32>,
@@ -15,19 +15,19 @@ fn add_block_sums_u32(
         block_dim: (block_sz, 1, 1),
         shared_mem_bytes: 0,
     };
-    let gpu_add_block_sums =
-        crate::load_function_in_module(del_cudarc_kernel::CUMSUM, "gpu_add_block_sums");
+    let (func, _mdl) =
+        crate::load_function_in_module(del_cudarc_kernel::CUMSUM, "gpu_add_block_sums").unwrap();
     let mut builder = crate::Builder::new(stream);
     builder.arg_dptr(vout_dev.dptr);
     builder.arg_dptr(d_block_sums.dptr);
     builder.arg_i32(num_elem as i32);
-    builder.launch_kernel(gpu_add_block_sums.0, cfg);
+    builder.launch_kernel(func, cfg).unwrap();
 }
 
 /// # Returns
 /// Ok(grid_size, block_size, d_block_sums)
 /// d_block_sums is size of "grid_size"
-fn block_sums(
+pub fn block_sums(
     stream: cu::CUstream,
     d_out: &CuVec<u32>,
     d_in: &CuVec<u32>,
@@ -38,9 +38,6 @@ fn block_sums(
     const MAX_BLOCK_SZ: u32 = 1024;
     // const NUM_BANKS: u32 = 32;
     const LOG_NUM_BANKS: u32 = 5;
-
-    // Zero out d_out
-    d_out.set_zeros(stream);
 
     // Set up number of threads and blocks
     let block_size = MAX_BLOCK_SZ / 2;
@@ -60,11 +57,14 @@ fn block_sums(
 
     // Conflict free padding requires that shared memory be more than 2 * block_sz
     let shmem_size = max_elems_per_block + ((max_elems_per_block - 1) >> LOG_NUM_BANKS);
+    //let shmem_size = max_elems_per_block + ((max_elems_per_block) >> LOG_NUM_BANKS);
 
     // Allocate memory for array of total sums produced by each block
     // Array length must be the same as number of blocks
-    let d_block_sums = CuVec::<u32>::with_capacity(grid_size as usize);
-    d_block_sums.set_zeros(stream);
+    let d_block_sums = CuVec::<u32>::with_capacity(grid_size as usize).unwrap();
+    d_block_sums.set_zeros(stream).unwrap();
+
+    d_out.set_zeros(stream).unwrap();
 
     // Sum scan data allocated to each block
     {
@@ -74,7 +74,7 @@ fn block_sums(
             block_dim: (block_size, 1, 1),
             shared_mem_bytes: (u32::BITS / 8u32) * shmem_size,
         };
-        let gpu_prescan = crate::load_function_in_module(del_cudarc_kernel::CUMSUM, "gpu_prescan");
+        let (fnc, _mdl) = crate::load_function_in_module(del_cudarc_kernel::CUMSUM, "gpu_prescan").unwrap();
         let mut builder = crate::Builder::new(stream2);
         builder.arg_dptr(d_out.dptr);
         builder.arg_dptr(d_in.dptr);
@@ -82,22 +82,23 @@ fn block_sums(
         builder.arg_i32(num_elem as i32);
         builder.arg_i32(shmem_size as i32);
         builder.arg_i32(max_elems_per_block as i32);
-        builder.launch_kernel(gpu_prescan.0, cfg);
+        builder.launch_kernel(fnc, cfg).unwrap();
     }
+    // dbg!(d_out.copy_to_host().unwrap());
 
     // Sum scan total sums produced by each block
     // Use basic implementation if number of total sums is <= 2 * block_sz
     //  (This requires only one block to do the scan)
     if grid_size <= max_elems_per_block {
         let stream3 = stream; // stream.fork()?;
-        let d_dummy_blocks_sums: CuVec<u32> = CuVec::with_capacity(1);
-        d_dummy_blocks_sums.set_zeros(stream3);
+        let d_dummy_blocks_sums: CuVec<u32> = CuVec::with_capacity(1).unwrap();
+        d_dummy_blocks_sums.set_zeros(stream3).unwrap();
         let cfg = crate::LaunchConfig {
             grid_dim: (1u32, 1, 1),
             block_dim: (block_size, 1, 1),
             shared_mem_bytes: u32::BITS / 8u32 * shmem_size,
         };
-        let gpu_prescan = crate::load_function_in_module(del_cudarc_kernel::CUMSUM, "gpu_prescan");
+        let gpu_prescan = crate::load_function_in_module(del_cudarc_kernel::CUMSUM, "gpu_prescan").unwrap();
         let mut builder = crate::Builder::new(stream3);
         builder.arg_dptr(d_block_sums.dptr);
         builder.arg_dptr(d_block_sums.dptr);
@@ -105,19 +106,20 @@ fn block_sums(
         builder.arg_i32(grid_size as i32);
         builder.arg_i32(shmem_size as i32);
         builder.arg_i32(max_elems_per_block as i32);
-        builder.launch_kernel(gpu_prescan.0, cfg);
+        builder.launch_kernel(gpu_prescan.0, cfg).unwrap();
+
     } else {
         let stream3 = stream; // stream.fork()?;
         // println!("prefix sum of blocks using recursive");
         // Else, recurse on this same function as you'll need the full-blown scan
         //  for the block sums
-        let d_in_block_sums: CuVec<u32> = CuVec::with_capacity(grid_size as usize);
+        let d_in_block_sums: CuVec<u32> = CuVec::with_capacity(grid_size as usize).unwrap();
         crate::memcpy_d2d_32(
             d_in_block_sums.dptr,
             d_block_sums.dptr,
             grid_size as usize,
             stream3,
-        );
+        ).unwrap();
         let (grid_sz1, block_sz1, d_block_sums1) =
             block_sums(stream, &d_block_sums, &d_in_block_sums);
         add_block_sums_u32(
@@ -143,8 +145,8 @@ pub fn exclusive_scan(stream: cu::CUstream, vin: &CuVec<u32>, vout: &CuVec<u32>)
 
 #[test]
 fn test_hoge() {
-    let (dev, _ctx) = crate::init_cuda_and_make_context(0);
-    let stream = crate::create_stream_in_current_context();
+    let (dev, _ctx) = crate::init_cuda_and_make_context(0).unwrap();
+    let stream = crate::create_stream_in_current_context().unwrap();
     let nvs = [
         (1024, 1024),
         (1023, 1),
@@ -161,10 +163,12 @@ fn test_hoge() {
             vin.push(0u32); // push 0 at the end
             vin
         };
-        let d_vin = CuVec::from_slice(&h_vin);
-        let d_vout = CuVec::with_capacity(d_vin.n);
+        let d_vin = CuVec::from_slice(&h_vin).unwrap();
+        let d_vout = CuVec::with_capacity(d_vin.n).unwrap();
+        let d_buff = CuVec::<u32>::with_capacity(1000).unwrap();
+        d_buff.set_zeros(stream).unwrap();
         exclusive_scan(stream, &d_vin, &d_vout);
-        let h_vout = d_vout.copy_to_host();
+        let h_vout = d_vout.copy_to_host().unwrap();
         assert_eq!(h_vout[0], 0);
         assert_eq!(h_vout.len(), n + 1);
         for i in 0..n {
@@ -178,7 +182,8 @@ fn test_hoge() {
             );
         }
         assert_eq!(h_vout[n], (n as u32) * v);
+        assert_eq!(d_buff.copy_to_host().unwrap(), vec!(0;1000), "illegal memory access");
     }
-    crate::cuda_check!(cu::cuStreamDestroy_v2(stream));
-    crate::cuda_check!(cu::cuDevicePrimaryCtxRelease_v2(dev));
+    crate::cuda_check!(cu::cuStreamDestroy_v2(stream)).unwrap();
+    crate::cuda_check!(cu::cuDevicePrimaryCtxRelease_v2(dev)).unwrap();
 }

@@ -36,14 +36,14 @@ fn set_consecutive_sequence(_py: Python, obj: &pyo3::Bound<'_, PyAny>) -> PyResu
                 use cudarc::driver::sys::*;
                 println!("GPU_{}", tensor.ctx.device_id);
                 let (function, _module) = del_cudarc_sys::load_function_in_module(
-                    del_cudarc_kernel::UTIL,
+                    del_cudarc_kernel::ARRAY1D,
                     "gpu_set_consecutive_sequence",
-                );
-                let stream = del_cudarc_sys::create_stream_in_current_context();
+                ).unwrap();
+                let stream = del_cudarc_sys::create_stream_in_current_context().unwrap();
                 let mut builder = del_cudarc_sys::Builder::new(stream);
                 builder.arg_data(&tensor.data);
                 builder.arg_i32(total_elements as i32);
-                builder.launch_kernel(function, LaunchConfig::for_num_elems(total_elements as u32));
+                builder.launch_kernel(function, LaunchConfig::for_num_elems(total_elements as u32)).unwrap();
                 cuStreamDestroy_v2(stream);
             }
             _ => println!("Unknown device type {}", tensor.ctx.device_type),
