@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 
-pub mod cumsum;
 pub mod array1d;
+pub mod cumsum;
 
 pub mod offset_array;
 pub mod sort_by_key_u32;
@@ -39,7 +39,10 @@ macro_rules! cuda_check {
     }};
 }
 
-pub fn load_function_in_module(ptx: &str, func_name: &str) -> Result<(cu::CUfunction, cu::CUmodule), String> {
+pub fn load_function_in_module(
+    ptx: &str,
+    func_name: &str,
+) -> Result<(cu::CUfunction, cu::CUmodule), String> {
     let ptx = std::ffi::CString::new(ptx).unwrap();
     let mut module: cu::CUmodule = std::ptr::null_mut();
     cuda_check!(cu::cuModuleLoadDataEx(
@@ -201,7 +204,11 @@ pub fn malloc_device<T>(n: usize) -> Result<cu::CUdeviceptr, String> {
 }
 
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
-pub fn memset_zeros_32(dptr: cu::CUdeviceptr, n: usize, stream: cu::CUstream) -> Result<(), String> {
+pub fn memset_zeros_32(
+    dptr: cu::CUdeviceptr,
+    n: usize,
+    stream: cu::CUstream,
+) -> Result<(), String> {
     cuda_check!(cu::cuMemsetD8Async(dptr, 0u8, n * 4, stream))?;
     cuda_check!(cu::cuStreamSynchronize(stream))?;
     Ok(())
@@ -281,7 +288,11 @@ impl Builder {
     /// unde
     /// fined if function is invalid
     #[allow(clippy::not_unsafe_ptr_arg_deref)]
-    pub fn launch_kernel(&mut self, function: cu::CUfunction, cfg: LaunchConfig) -> Result<(), String> {
+    pub fn launch_kernel(
+        &mut self,
+        function: cu::CUfunction,
+        cfg: LaunchConfig,
+    ) -> Result<(), String> {
         cuda_check!(cu::cuLaunchKernel(
             function,
             cfg.grid_dim.0,

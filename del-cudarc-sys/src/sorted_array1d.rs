@@ -5,7 +5,8 @@ use crate::cuda_check;
 
 pub fn has_duplicates(stream: cu::CUstream, vals: &CuVec<u32>) -> bool {
     let (func, _mdl) =
-        crate::load_function_in_module(del_cudarc_kernel::SORTED_ARRAY1D, "has_duplicates").unwrap();
+        crate::load_function_in_module(del_cudarc_kernel::SORTED_ARRAY1D, "has_duplicates")
+            .unwrap();
     let is_duplicate = CuVec::<u32>::with_capacity(1).unwrap();
     is_duplicate.set_zeros(stream).unwrap();
     let cfg = LaunchConfig {
@@ -41,19 +42,22 @@ fn test_has_duplicate() {
 }
 
 pub fn unique(stream: cu::CUstream, idx2val: &CuVec<u32>, idx2jdx: &CuVec<u32>) {
-    let n = idx2val.n;
-    assert_eq!(idx2jdx.n, n);
-    let idx2issame = CuVec::<u32>::with_capacity(n).unwrap();
+    let num_idx = idx2val.n;
+    assert_eq!(idx2jdx.n, num_idx);
+    let idx2isdiff = CuVec::<u32>::with_capacity(num_idx).unwrap();
     {
         let (func, _mdl) =
-            crate::load_function_in_module(del_cudarc_kernel::SORTED_ARRAY1D, "idx2issame").unwrap();
+            crate::load_function_in_module(del_cudarc_kernel::SORTED_ARRAY1D, "idx2isdiff")
+                .unwrap();
         let mut builder = crate::Builder::new(stream);
-        builder.arg_i32(n as i32);
+        builder.arg_i32(num_idx as i32);
         builder.arg_dptr(idx2val.dptr);
-        builder.arg_dptr(idx2issame.dptr);
-        builder.launch_kernel(func, LaunchConfig::for_num_elems(idx2val.n as u32)).unwrap();
+        builder.arg_dptr(idx2isdiff.dptr);
+        builder
+            .launch_kernel(func, LaunchConfig::for_num_elems(num_idx as u32))
+            .unwrap();
     }
-    crate::cumsum::exclusive_scan(stream, &idx2issame, idx2jdx);
+    crate::cumsum::exclusive_scan(stream, &idx2isdiff, idx2jdx);
 }
 
 #[test]

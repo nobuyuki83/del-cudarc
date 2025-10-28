@@ -2,11 +2,14 @@ use crate::{CuVec, LaunchConfig, cu, cuda_check};
 
 pub fn set_consecutive_sequence(stream: cu::CUstream, din: &CuVec<u32>) {
     let (func, _mdl) =
-        crate::load_function_in_module(del_cudarc_kernel::ARRAY1D, "set_consecutive_sequence").unwrap();
+        crate::load_function_in_module(del_cudarc_kernel::ARRAY1D, "set_consecutive_sequence")
+            .unwrap();
     let mut builder = crate::Builder::new(stream);
     builder.arg_i32(din.n as i32);
     builder.arg_dptr(din.dptr);
-    builder.launch_kernel(func, LaunchConfig::for_num_elems(din.n as u32)).unwrap();
+    builder
+        .launch_kernel(func, LaunchConfig::for_num_elems(din.n as u32))
+        .unwrap();
 }
 
 #[test]
@@ -26,14 +29,17 @@ fn test_set_consecutive_sequence() {
 }
 
 pub fn shift_array_right(stream: cu::CUstream, din: &CuVec<u32>) -> CuVec<u32> {
-    let (func, _mdl) = crate::load_function_in_module(del_cudarc_kernel::ARRAY1D, "shift_array_right").unwrap();
+    let (func, _mdl) =
+        crate::load_function_in_module(del_cudarc_kernel::ARRAY1D, "shift_array_right").unwrap();
     let dout: CuVec<u32> = CuVec::with_capacity(din.n).unwrap();
     {
         let mut builder = crate::Builder::new(stream);
         builder.arg_i32(din.n as i32);
         builder.arg_dptr(din.dptr);
         builder.arg_dptr(dout.dptr);
-        builder.launch_kernel(func, LaunchConfig::for_num_elems(din.n as u32)).unwrap();
+        builder
+            .launch_kernel(func, LaunchConfig::for_num_elems(din.n as u32))
+            .unwrap();
     }
     cuda_check!(cu::cuMemsetD32_v2(dout.dptr, 0, 1)).unwrap();
     dout
@@ -64,14 +70,17 @@ pub fn permute(
     old2data: &CuVec<u32>,
 ) {
     let num_new = new2data.n;
-    assert!(new2old.n >= num_new); // inequality
-    let (func, _mdl) = crate::load_function_in_module(del_cudarc_kernel::ARRAY1D, "permute").unwrap();
+    assert!(new2old.n >= num_new); // inequality in case for new2old is an array of offset
+    let (func, _mdl) =
+        crate::load_function_in_module(del_cudarc_kernel::ARRAY1D, "permute").unwrap();
     let mut builder = crate::Builder::new(stream);
     builder.arg_i32(num_new as i32);
     builder.arg_dptr(new2data.dptr);
     builder.arg_dptr(new2old.dptr);
     builder.arg_dptr(old2data.dptr);
-    builder.launch_kernel(func, LaunchConfig::for_num_elems(num_new as u32)).unwrap();
+    builder
+        .launch_kernel(func, LaunchConfig::for_num_elems(num_new as u32))
+        .unwrap();
 }
 
 #[test]
@@ -88,4 +97,3 @@ fn test_permute() {
     cuda_check!(cu::cuStreamDestroy_v2(stream)).unwrap();
     cuda_check!(cu::cuDevicePrimaryCtxRelease_v2(dev)).unwrap();
 }
-

@@ -27,11 +27,11 @@ void has_duplicates(const uint32_t* arr, int n, uint32_t* has_dup) {
 }
 
 __global__
-void idx2issame(uint32_t n, const uint32_t* idx2val, uint32_t* idx2issame) {
+void idx2isdiff(uint32_t num_idx, const uint32_t* idx2val, uint32_t* idx2isdiff) {
   int i = blockDim.x * blockIdx.x + threadIdx.x;
-  if( i >= n-1 ){ return; }
+  if( i >= num_idx-1 ){ return; }
   // ---------------
-  idx2issame[i] = ( idx2val[i] == idx2val[i+1] ) ? 0 : 1;
+  idx2isdiff[i] = ( idx2val[i] == idx2val[i+1] ) ? 0 : 1;
 }
 
 }

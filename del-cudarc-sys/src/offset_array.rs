@@ -5,12 +5,15 @@ use crate::cuda_check;
 
 pub fn sort(stream: cu::CUstream, p2idx: &CuVec<u32>, idx2q: &CuVec<u32>) {
     let np = p2idx.n - 1;
-    let (func, _mdl) = crate::load_function_in_module(del_cudarc_kernel::OFFSET_ARRAY, "sort").unwrap();
+    let (func, _mdl) =
+        crate::load_function_in_module(del_cudarc_kernel::OFFSET_ARRAY, "sort").unwrap();
     let mut builder = crate::Builder::new(stream);
     builder.arg_i32(np as i32);
     builder.arg_dptr(p2idx.dptr);
     builder.arg_dptr(idx2q.dptr);
-    builder.launch_kernel(func, LaunchConfig::for_num_elems(np as u32)).unwrap();
+    builder
+        .launch_kernel(func, LaunchConfig::for_num_elems(np as u32))
+        .unwrap();
 }
 
 #[test]
@@ -50,7 +53,9 @@ pub fn inverse_map(stream: cu::CUstream, idx2jdx: &CuVec<u32>, jdx2idx_offset: &
         builder.arg_dptr(jdx2idx_offset.dptr);
         builder.arg_i32(num_idx as i32);
         builder.arg_dptr(idx2jdx.dptr);
-        builder.launch_kernel(func, LaunchConfig::for_num_elems(num_jdx as u32 + 1)).unwrap();
+        builder
+            .launch_kernel(func, LaunchConfig::for_num_elems(num_jdx as u32 + 1))
+            .unwrap();
     }
 }
 

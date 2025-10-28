@@ -74,7 +74,8 @@ pub fn block_sums(
             block_dim: (block_size, 1, 1),
             shared_mem_bytes: (u32::BITS / 8u32) * shmem_size,
         };
-        let (fnc, _mdl) = crate::load_function_in_module(del_cudarc_kernel::CUMSUM, "gpu_prescan").unwrap();
+        let (fnc, _mdl) =
+            crate::load_function_in_module(del_cudarc_kernel::CUMSUM, "gpu_prescan").unwrap();
         let mut builder = crate::Builder::new(stream2);
         builder.arg_dptr(d_out.dptr);
         builder.arg_dptr(d_in.dptr);
@@ -98,7 +99,8 @@ pub fn block_sums(
             block_dim: (block_size, 1, 1),
             shared_mem_bytes: u32::BITS / 8u32 * shmem_size,
         };
-        let gpu_prescan = crate::load_function_in_module(del_cudarc_kernel::CUMSUM, "gpu_prescan").unwrap();
+        let gpu_prescan =
+            crate::load_function_in_module(del_cudarc_kernel::CUMSUM, "gpu_prescan").unwrap();
         let mut builder = crate::Builder::new(stream3);
         builder.arg_dptr(d_block_sums.dptr);
         builder.arg_dptr(d_block_sums.dptr);
@@ -107,7 +109,7 @@ pub fn block_sums(
         builder.arg_i32(shmem_size as i32);
         builder.arg_i32(max_elems_per_block as i32);
         builder.launch_kernel(gpu_prescan.0, cfg).unwrap();
-
+        drop(d_dummy_blocks_sums);
     } else {
         let stream3 = stream; // stream.fork()?;
         // println!("prefix sum of blocks using recursive");
@@ -119,17 +121,19 @@ pub fn block_sums(
             d_block_sums.dptr,
             grid_size as usize,
             stream3,
-        ).unwrap();
+        )
+        .unwrap();
         let (grid_sz1, block_sz1, d_block_sums1) =
             block_sums(stream, &d_block_sums, &d_in_block_sums);
         add_block_sums_u32(
             stream,
             &d_block_sums,
             &d_block_sums1,
-            num_elem,
+            grid_size, // num_elem
             grid_sz1,
             block_sz1,
         );
+        drop(d_in_block_sums);
     }
     (grid_size, block_size, d_block_sums)
 }
@@ -182,7 +186,11 @@ fn test_hoge() {
             );
         }
         assert_eq!(h_vout[n], (n as u32) * v);
-        assert_eq!(d_buff.copy_to_host().unwrap(), vec!(0;1000), "illegal memory access");
+        assert_eq!(
+            d_buff.copy_to_host().unwrap(),
+            vec!(0; 1000),
+            "illegal memory access"
+        );
     }
     crate::cuda_check!(cu::cuStreamDestroy_v2(stream)).unwrap();
     crate::cuda_check!(cu::cuDevicePrimaryCtxRelease_v2(dev)).unwrap();

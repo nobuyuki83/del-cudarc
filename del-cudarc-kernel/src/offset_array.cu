@@ -46,27 +46,17 @@ void inverse_map(
     }
     uint32_t idx0 = 0;
     uint32_t idx2 = num_idx;
-    while(1){
-      if( idx2 - idx0 == 1 ){
-        assert(idx0<num_idx);
-        if(idx2jdx[idx0] >= jdx){
-          jdx2idx_offset[jdx] = idx0;
-        }
-        else{
-          jdx2idx_offset[jdx] = idx2;
-        }
-        break;
-      }
-      // --------------
-      const uint32_t idx1 = (idx2 + idx0) / 2;
-      assert(idx1<num_idx);
+    while(idx0<idx2){
+      const uint32_t idx1 = idx0 + ((idx2 - idx0) >> 1); // to avoid overflow
+      // assert(idx1<num_idx);
       if( idx2jdx[idx1] < jdx ){
-          idx0 = idx1;
+          idx0 = idx1 + 1;
       }
       else {
           idx2 = idx1;
       }
     }
+    jdx2idx_offset[jdx] = idx0;
 }
 
 }
