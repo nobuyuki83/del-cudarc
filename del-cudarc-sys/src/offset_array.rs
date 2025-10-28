@@ -91,10 +91,9 @@ pub fn test_inverse_map() {
             let idx0 = jdx2idx[jdx] as usize;
             let idx1 = jdx2idx[jdx + 1] as usize;
             assert!(idx0 <= idx1);
-            #[allow(clippy::needless_range_loop)]
-            for idx in idx0..idx1 {
-                assert_eq!(idx2jdx[idx] as usize, jdx);
-            }
+            idx2jdx[idx0..idx1]
+                .iter()
+                .for_each(|&idx| assert_eq!(idx as usize, jdx));
         }
     }
     cuda_check!(cu::cuStreamDestroy_v2(stream)).unwrap();
