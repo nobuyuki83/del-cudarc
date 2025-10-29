@@ -59,4 +59,27 @@ void inverse_map(
     jdx2idx_offset[jdx] = idx0;
 }
 
+__global__
+void aggregate(
+    uint32_t num_idx,
+    const uint32_t* idx2jdx_offset,
+    const uint32_t* jdx2kdx,
+    const uint32_t num_dim,
+    const float* kdx2val,
+    float* idx2aggval)
+{
+    const uint32_t idx = blockDim.x * blockIdx.x + threadIdx.x;
+    if( idx >= num_idx ){ return; }
+    //
+    for(int i_dim=0;i_dim<num_dim;++i_dim){
+        idx2aggval[idx*num_dim+i_dim] = 0.0;
+    }
+    for(int jdx=idx2jdx_offset[idx];jdx<idx2jdx_offset[idx+1];++jdx){
+        int kdx = jdx2kdx[jdx];
+        for(int i_dim=0;i_dim<num_dim;++i_dim){
+             idx2aggval[idx*num_dim+i_dim] += kdx2val[kdx*num_dim+i_dim];
+        }
+    }
+}
+
 }
