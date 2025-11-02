@@ -20,7 +20,7 @@ pub fn add_block_sums_u32(
     let mut builder = crate::Builder::new(stream);
     builder.arg_dptr(vout_dev.dptr);
     builder.arg_dptr(d_block_sums.dptr);
-    builder.arg_i32(num_elem as i32);
+    builder.arg_u32(num_elem);
     builder.launch_kernel(func, cfg).unwrap();
 }
 
@@ -80,9 +80,9 @@ pub fn block_sums(
         builder.arg_dptr(d_out.dptr);
         builder.arg_dptr(d_in.dptr);
         builder.arg_dptr(d_block_sums.dptr);
-        builder.arg_i32(num_elem as i32);
-        builder.arg_i32(shmem_size as i32);
-        builder.arg_i32(max_elems_per_block as i32);
+        builder.arg_u32(num_elem);
+        builder.arg_u32(shmem_size);
+        builder.arg_u32(max_elems_per_block);
         builder.launch_kernel(fnc, cfg).unwrap();
     }
     // dbg!(d_out.copy_to_host().unwrap());
@@ -105,9 +105,9 @@ pub fn block_sums(
         builder.arg_dptr(d_block_sums.dptr);
         builder.arg_dptr(d_block_sums.dptr);
         builder.arg_dptr(d_dummy_blocks_sums.dptr);
-        builder.arg_i32(grid_size as i32);
-        builder.arg_i32(shmem_size as i32);
-        builder.arg_i32(max_elems_per_block as i32);
+        builder.arg_u32(grid_size);
+        builder.arg_u32(shmem_size);
+        builder.arg_u32(max_elems_per_block);
         builder.launch_kernel(gpu_prescan.0, cfg).unwrap();
         drop(d_dummy_blocks_sums);
     } else {

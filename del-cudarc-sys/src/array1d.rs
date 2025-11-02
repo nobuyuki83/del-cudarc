@@ -5,7 +5,7 @@ pub fn set_consecutive_sequence(stream: cu::CUstream, din: &CuVec<u32>) {
         crate::load_function_in_module(del_cudarc_kernel::ARRAY1D, "set_consecutive_sequence")
             .unwrap();
     let mut builder = crate::Builder::new(stream);
-    builder.arg_i32(din.n as i32);
+    builder.arg_u32(din.n as u32);
     builder.arg_dptr(din.dptr);
     builder
         .launch_kernel(func, LaunchConfig::for_num_elems(din.n as u32))
@@ -34,7 +34,7 @@ pub fn shift_array_right(stream: cu::CUstream, din: &CuVec<u32>) -> CuVec<u32> {
     let dout: CuVec<u32> = CuVec::with_capacity(din.n).unwrap();
     {
         let mut builder = crate::Builder::new(stream);
-        builder.arg_i32(din.n as i32);
+        builder.arg_u32(din.n as u32);
         builder.arg_dptr(din.dptr);
         builder.arg_dptr(dout.dptr);
         builder
@@ -74,7 +74,7 @@ pub fn permute(
     let (func, _mdl) =
         crate::load_function_in_module(del_cudarc_kernel::ARRAY1D, "permute").unwrap();
     let mut builder = crate::Builder::new(stream);
-    builder.arg_i32(num_new as i32);
+    builder.arg_u32(num_new as u32);
     builder.arg_dptr(new2data.dptr);
     builder.arg_dptr(new2old.dptr);
     builder.arg_dptr(old2data.dptr);

@@ -43,7 +43,7 @@ fn set_consecutive_sequence(_py: Python, obj: &pyo3::Bound<'_, PyAny>) -> PyResu
                 let stream = del_cudarc_sys::create_stream_in_current_context().unwrap();
                 let mut builder = del_cudarc_sys::Builder::new(stream);
                 builder.arg_data(&tensor.data);
-                builder.arg_i32(total_elements as i32);
+                builder.arg_u32(total_elements as u32);
                 builder
                     .launch_kernel(function, LaunchConfig::for_num_elems(total_elements as u32))
                     .unwrap();

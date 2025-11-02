@@ -16,7 +16,7 @@ pub fn has_duplicates(stream: cu::CUstream, vals: &CuVec<u32>) -> bool {
     };
     let mut builder = crate::Builder::new(stream);
     builder.arg_dptr(vals.dptr);
-    builder.arg_i32(vals.n as i32);
+    builder.arg_u32(vals.n as u32);
     builder.arg_dptr(is_duplicate.dptr);
     builder.launch_kernel(func, cfg).unwrap();
     let flg = is_duplicate.copy_to_host().unwrap();
@@ -50,7 +50,7 @@ pub fn unique(stream: cu::CUstream, idx2val: &CuVec<u32>, idx2jdx: &CuVec<u32>) 
             crate::load_function_in_module(del_cudarc_kernel::SORTED_ARRAY1D, "idx2isdiff")
                 .unwrap();
         let mut builder = crate::Builder::new(stream);
-        builder.arg_i32(num_idx as i32);
+        builder.arg_u32(num_idx as u32);
         builder.arg_dptr(idx2val.dptr);
         builder.arg_dptr(idx2isdiff.dptr);
         builder

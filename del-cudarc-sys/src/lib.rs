@@ -231,7 +231,7 @@ pub fn memcpy_d2d_32(
 pub struct Builder {
     pub cu_stream: cu::CUstream,
     pub args: Vec<*mut std::ffi::c_void>,
-    pub vec_i32: Vec<i32>,
+    pub vec_u32: Vec<u32>,
     pub vec_f32: Vec<f32>,
     pub vec_u8: Vec<u8>,
     pub vec_dptr: Vec<Box<cu::CUdeviceptr>>, // to get stable pointer to the CUdeviceptr
@@ -242,7 +242,7 @@ impl Builder {
         Builder {
             cu_stream,
             args: vec![],
-            vec_i32: vec![],
+            vec_u32: vec![],
             vec_f32: vec![],
             vec_u8: vec![],
             vec_dptr: vec![],
@@ -262,9 +262,9 @@ impl Builder {
         self.vec_dptr.push(slot);
     }
 
-    pub fn arg_i32(&mut self, val: i32) {
-        self.vec_i32.push(val);
-        let val_ref = self.vec_i32.last().unwrap();
+    pub fn arg_u32(&mut self, val: u32) {
+        self.vec_u32.push(val);
+        let val_ref = self.vec_u32.last().unwrap();
         let ptr = (val_ref as *const _) as *mut std::ffi::c_void;
         self.args.push(ptr);
     }

@@ -59,10 +59,10 @@ pub fn radix_sort_by_key_u32(
                 builder.arg_dptr(d_out.dptr);
                 builder.arg_dptr(d_prefix_sums.dptr);
                 builder.arg_dptr(d_block_sums.dptr);
-                builder.arg_i32(shift_width);
+                builder.arg_u32(shift_width);
                 builder.arg_dptr(d_in.dptr);
-                builder.arg_i32(d_in_len as i32);
-                builder.arg_i32(max_elems_per_block as i32);
+                builder.arg_u32(d_in_len);
+                builder.arg_u32(max_elems_per_block);
                 builder.arg_dptr(d_idx_in.dptr);
                 builder.arg_dptr(d_idx_out.dptr);
                 builder.launch_kernel(func, cfg).unwrap();
@@ -90,9 +90,9 @@ pub fn radix_sort_by_key_u32(
             builder.arg_dptr(d_out.dptr);
             builder.arg_dptr(d_scan_block_sums.dptr);
             builder.arg_dptr(d_prefix_sums.dptr);
-            builder.arg_i32(shift_width);
-            builder.arg_i32(d_in_len as i32);
-            builder.arg_i32(max_elems_per_block as i32);
+            builder.arg_u32(shift_width);
+            builder.arg_u32(d_in_len);
+            builder.arg_u32(max_elems_per_block);
             builder.arg_dptr(d_idx_out.dptr);
             builder.arg_dptr(d_idx_in.dptr);
             builder.launch_kernel(func, cfg).unwrap();
