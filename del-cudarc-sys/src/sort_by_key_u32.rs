@@ -49,11 +49,14 @@ pub fn radix_sort_by_key_u32(
                 shared_mem_bytes: shmem_sz * (u32::BITS / 8),
             };
             let d_in_len = d_in.n as u32;
+            /*
             let (func, _mdl) = crate::load_function_in_module(
                 del_cudarc_kernel::SORT_BY_KEY_U32,
                 "gpu_radix_sort_local",
             )
             .unwrap();
+             */
+            let func = crate::load_get_function("sort_by_key_u32", "gpu_radix_sort_local").unwrap();
             {
                 let mut builder = crate::Builder::new(stream);
                 builder.arg_dptr(d_out.dptr);
@@ -80,11 +83,14 @@ pub fn radix_sort_by_key_u32(
                 block_dim: (block_sz, 1, 1),
                 shared_mem_bytes: 0,
             };
+            /*
             let (func, _mdl) = crate::load_function_in_module(
                 del_cudarc_kernel::SORT_BY_KEY_U32,
                 "gpu_glbl_shuffle",
             )
             .unwrap();
+             */
+            let func = crate::load_get_function("sort_by_key_u32", "gpu_glbl_shuffle").unwrap();
             let mut builder = crate::Builder::new(stream);
             builder.arg_dptr(d_in.dptr);
             builder.arg_dptr(d_out.dptr);

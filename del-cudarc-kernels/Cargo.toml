@@ -1,0 +1,15 @@
+[package]
+name = "del-cudarc-kernels"
+description.workspace = true
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+build = "build.rs"
+
+include = ["src/**", "cuda/**", "build.rs"]
+
+[dependencies]
+
+
+[build-dependencies]
+walkdir = "2.5.0"

@@ -4,6 +4,7 @@ members = [
     "del-cudarc-dlpack",
     "del-cudarc-safe",
     "del-cudarc-sys",
+    "del-cudarc-kernels",
 ]
 resolver = "2"
 
@@ -23,6 +24,7 @@ dlpack = "0.2.0"
 # for develop/push
 # internal
 del-cudarc-kernel = { path = "del-cudarc-kernel" }
+del-cudarc-kernels = { path = "del-cudarc-kernels" }
 del-cudarc-sys = { path = "del-cudarc-sys" }
 # this version comes from candle library
 cudarc = { version = "=0.16.2", features = ["std", "driver", "nvrtc", "cuda-version-from-build-system", "dynamic-linking"], default-features = false}

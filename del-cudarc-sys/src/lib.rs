@@ -1,3 +1,4 @@
+use cudarc::driver::sys::CUfunction;
 use std::marker::PhantomData;
 
 pub mod array1d;
@@ -24,6 +25,7 @@ macro_rules! cuda_check {
 }
  */
 
+/// put "use del_cudarc_sys::cu" before using this macro
 #[macro_export]
 macro_rules! cuda_check {
     ($e:expr) => {{
@@ -39,27 +41,17 @@ macro_rules! cuda_check {
     }};
 }
 
-pub fn load_function_in_module(
-    ptx: &str,
-    func_name: &str,
-) -> Result<(cu::CUfunction, cu::CUmodule), String> {
-    let ptx = std::ffi::CString::new(ptx).unwrap();
+pub fn load_get_function(file_name: &str, function_name: &str) -> Result<CUfunction, String> {
+    let fatbin = del_cudarc_kernels::get(file_name).ok_or("missing add.fatbin in kernels")?;
     let mut module: cu::CUmodule = std::ptr::null_mut();
-    cuda_check!(cu::cuModuleLoadDataEx(
-        &mut module,
-        ptx.as_ptr() as *const _,
-        0,
-        std::ptr::null::<u32>() as *mut cu::CUjit_option,
-        std::ptr::null::<u32>() as *mut *mut std::ffi::c_void,
+    cuda_check!(cu::cuModuleLoadData(
+        &mut module as *mut _,
+        fatbin.as_ptr() as *const _
     ))?;
-    let mut function: cu::CUfunction = std::ptr::null_mut();
-    let func_name_str = std::ffi::CString::new(func_name).unwrap();
-    cuda_check!(cu::cuModuleGetFunction(
-        &mut function,
-        module,
-        func_name_str.as_ptr()
-    ))?;
-    Ok((function, module))
+    let cname = std::ffi::CString::new(function_name).unwrap();
+    let mut f: cu::CUfunction = std::ptr::null_mut();
+    cuda_check!(cu::cuModuleGetFunction(&mut f, module, cname.as_ptr()))?;
+    Ok(f)
 }
 
 pub fn create_stream_in_current_context() -> Result<cu::CUstream, String> {
@@ -337,4 +329,32 @@ impl LaunchConfig {
             shared_mem_bytes: 0,
         }
     }
+}
+
+pub fn get_ptx_compiler_version() -> (i32, i32, i32) {
+    let (dev, _ctx) = crate::init_cuda_and_make_context(0).unwrap();
+    let stream = crate::create_stream_in_current_context().unwrap();
+    let a = {
+        let func = load_get_function("util", "get_version").unwrap();
+        /*
+        let (func, _mdl) =
+            crate::load_function_in_module(del_cudarc_kernel::UTIL, "get_version").unwrap();
+         */
+        let a = CuVec::<i32>::with_capacity(3).unwrap();
+        let mut builder = crate::Builder::new(stream);
+        builder.arg_dptr(a.dptr);
+        builder
+            .launch_kernel(func, LaunchConfig::for_num_elems(1))
+            .unwrap();
+        a.copy_to_host().unwrap()
+    };
+    cuda_check!(cu::cuStreamDestroy_v2(stream)).unwrap();
+    cuda_check!(cu::cuDevicePrimaryCtxRelease_v2(dev)).unwrap();
+    (a[0], a[1], a[2])
+}
+
+#[test]
+fn test_get_ptx_compiler_version() {
+    let (major, minor, build) = get_ptx_compiler_version();
+    dbg!(major, minor, build);
 }

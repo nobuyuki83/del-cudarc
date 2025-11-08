@@ -4,7 +4,8 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
-del-cudarc-kernel.workspace = true
+#del-cudarc-kernel.workspace = true
+del-cudarc-kernels.workspace = true
 cudarc.workspace = true
 
 [dev-dependencies]

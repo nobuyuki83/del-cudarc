@@ -4,9 +4,12 @@ use crate::{CuVec, LaunchConfig, cu};
 use crate::cuda_check;
 
 pub fn has_duplicates(stream: cu::CUstream, vals: &CuVec<u32>) -> bool {
+    /*
     let (func, _mdl) =
         crate::load_function_in_module(del_cudarc_kernel::SORTED_ARRAY1D, "has_duplicates")
             .unwrap();
+     */
+    let func = crate::load_get_function("sorted_array1d", "has_duplicates").unwrap();
     let is_duplicate = CuVec::<u32>::with_capacity(1).unwrap();
     is_duplicate.set_zeros(stream).unwrap();
     let cfg = LaunchConfig {
@@ -46,9 +49,12 @@ pub fn unique(stream: cu::CUstream, idx2val: &CuVec<u32>, idx2jdx: &CuVec<u32>) 
     assert_eq!(idx2jdx.n, num_idx);
     let idx2isdiff = CuVec::<u32>::with_capacity(num_idx).unwrap();
     {
+        /*
         let (func, _mdl) =
             crate::load_function_in_module(del_cudarc_kernel::SORTED_ARRAY1D, "idx2isdiff")
                 .unwrap();
+         */
+        let func = crate::load_get_function("sorted_array1d", "idx2isdiff").unwrap();
         let mut builder = crate::Builder::new(stream);
         builder.arg_u32(num_idx as u32);
         builder.arg_dptr(idx2val.dptr);

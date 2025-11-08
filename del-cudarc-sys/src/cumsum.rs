@@ -15,8 +15,11 @@ pub fn add_block_sums_u32(
         block_dim: (block_sz, 1, 1),
         shared_mem_bytes: 0,
     };
+    /*
     let (func, _mdl) =
         crate::load_function_in_module(del_cudarc_kernel::CUMSUM, "gpu_add_block_sums").unwrap();
+     */
+    let func = crate::load_get_function("cumsum", "gpu_add_block_sums").unwrap();
     let mut builder = crate::Builder::new(stream);
     builder.arg_dptr(vout_dev.dptr);
     builder.arg_dptr(d_block_sums.dptr);
@@ -74,8 +77,11 @@ pub fn block_sums(
             block_dim: (block_size, 1, 1),
             shared_mem_bytes: (u32::BITS / 8u32) * shmem_size,
         };
+        /*
         let (fnc, _mdl) =
             crate::load_function_in_module(del_cudarc_kernel::CUMSUM, "gpu_prescan").unwrap();
+         */
+        let func = crate::load_get_function("cumsum", "gpu_prescan").unwrap();
         let mut builder = crate::Builder::new(stream2);
         builder.arg_dptr(d_out.dptr);
         builder.arg_dptr(d_in.dptr);
@@ -83,7 +89,7 @@ pub fn block_sums(
         builder.arg_u32(num_elem);
         builder.arg_u32(shmem_size);
         builder.arg_u32(max_elems_per_block);
-        builder.launch_kernel(fnc, cfg).unwrap();
+        builder.launch_kernel(func, cfg).unwrap();
     }
     // dbg!(d_out.copy_to_host().unwrap());
 
@@ -99,8 +105,11 @@ pub fn block_sums(
             block_dim: (block_size, 1, 1),
             shared_mem_bytes: u32::BITS / 8u32 * shmem_size,
         };
+        /*
         let gpu_prescan =
             crate::load_function_in_module(del_cudarc_kernel::CUMSUM, "gpu_prescan").unwrap();
+         */
+        let func = crate::load_get_function("cumsum", "gpu_prescan").unwrap();
         let mut builder = crate::Builder::new(stream3);
         builder.arg_dptr(d_block_sums.dptr);
         builder.arg_dptr(d_block_sums.dptr);
@@ -108,7 +117,7 @@ pub fn block_sums(
         builder.arg_u32(grid_size);
         builder.arg_u32(shmem_size);
         builder.arg_u32(max_elems_per_block);
-        builder.launch_kernel(gpu_prescan.0, cfg).unwrap();
+        builder.launch_kernel(func, cfg).unwrap();
         drop(d_dummy_blocks_sums);
     } else {
         let stream3 = stream; // stream.fork()?;

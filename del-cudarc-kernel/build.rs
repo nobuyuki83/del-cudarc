@@ -13,6 +13,7 @@ fn main() {
     println!("cargo:rerun-if-changed=src/array1d.cu");
     println!("cargo:rerun-if-changed=src/sorted_array1d.cu");
     println!("cargo:rerun-if-changed=src/offset_array.cu");
+    println!("cargo:rerun-if-changed=src/util.cu");
     //println!("cargo:rustc-env={}",out_dir);
     let builder = bindgen_cuda::Builder::default();
     println!("cargo:info={builder:?}");

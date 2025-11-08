@@ -35,11 +35,16 @@ fn set_consecutive_sequence(_py: Python, obj: &pyo3::Bound<'_, PyAny>) -> PyResu
             dlpack::device_type_codes::GPU => {
                 use cudarc::driver::sys::*;
                 println!("GPU_{}", tensor.ctx.device_id);
+                /*
                 let (function, _module) = del_cudarc_sys::load_function_in_module(
                     del_cudarc_kernel::ARRAY1D,
                     "gpu_set_consecutive_sequence",
                 )
                 .unwrap();
+                 */
+                let function =
+                    del_cudarc_sys::load_get_function("array1d", "gpu_set_consecutive_sequence")
+                        .unwrap();
                 let stream = del_cudarc_sys::create_stream_in_current_context().unwrap();
                 let mut builder = del_cudarc_sys::Builder::new(stream);
                 builder.arg_data(&tensor.data);
