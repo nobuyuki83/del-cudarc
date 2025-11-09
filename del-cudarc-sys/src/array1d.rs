@@ -6,7 +6,13 @@ pub fn set_consecutive_sequence(stream: cu::CUstream, din: &CuVec<u32>) {
         crate::load_function_in_module(del_cudarc_kernel::ARRAY1D, "set_consecutive_sequence")
             .unwrap();
      */
-    let func = crate::load_get_function("array1d", "set_consecutive_sequence").unwrap();
+    //let func = crate::load_get_function("array1d", "set_consecutive_sequence").unwrap();
+    let func = crate::cache_func::get_function_cached(
+        "del_cudarc::array1d",
+        del_cudarc_kernels::get("array1d").unwrap(),
+        "set_consecutive_sequence",
+    )
+    .unwrap();
     let mut builder = crate::Builder::new(stream);
     builder.arg_u32(din.n as u32);
     builder.arg_dptr(din.dptr);
@@ -17,17 +23,20 @@ pub fn set_consecutive_sequence(stream: cu::CUstream, din: &CuVec<u32>) {
 
 #[test]
 fn test_set_consecutive_sequence() {
+    crate::cache_func::clear();
     let (dev, _ctx) = crate::init_cuda_and_make_context(0).unwrap();
-    let din: CuVec<u32> = CuVec::with_capacity(1025).unwrap();
-    let stream = crate::create_stream_in_current_context().unwrap();
-    set_consecutive_sequence(stream, &din);
     {
-        let h_v0 = din.copy_to_host().unwrap();
-        let h_v1 = (0..1025).map(|v| v as u32).collect::<Vec<u32>>();
-        assert_eq!(h_v0, h_v1);
+        let din: CuVec<u32> = CuVec::with_capacity(1025).unwrap();
+        let stream = crate::create_stream_in_current_context().unwrap();
+        set_consecutive_sequence(stream, &din);
+        {
+            let h_v0 = din.copy_to_host().unwrap();
+            let h_v1 = (0..1025).map(|v| v as u32).collect::<Vec<u32>>();
+            assert_eq!(h_v0, h_v1);
+        }
+        cuda_check!(cu::cuStreamDestroy_v2(stream)).unwrap();
     }
-    cuda_check!(cu::cuStreamDestroy_v2(stream)).unwrap();
-    drop(din);
+    cuda_check!(cu::cuCtxSetCurrent(std::ptr::null_mut())).unwrap();
     cuda_check!(cu::cuDevicePrimaryCtxRelease_v2(dev)).unwrap();
 }
 
@@ -36,7 +45,13 @@ pub fn shift_array_right(stream: cu::CUstream, din: &CuVec<u32>) -> CuVec<u32> {
     let (func, _mdl) =
         crate::load_function_in_module(del_cudarc_kernel::ARRAY1D, "shift_array_right").unwrap();
     */
-    let func = crate::load_get_function("array1d", "shift_array_right").unwrap();
+    //let func = crate::load_get_function("array1d", "shift_array_right").unwrap();
+    let func = crate::cache_func::get_function_cached(
+        "del_cudarc::array1d",
+        del_cudarc_kernels::get("array1d").unwrap(),
+        "shift_array_right",
+    )
+    .unwrap();
     let dout: CuVec<u32> = CuVec::with_capacity(din.n).unwrap();
     {
         let mut builder = crate::Builder::new(stream);
@@ -53,19 +68,21 @@ pub fn shift_array_right(stream: cu::CUstream, din: &CuVec<u32>) -> CuVec<u32> {
 
 #[test]
 fn test_shift_right() {
+    crate::cache_func::clear();
     let (dev, _ctx) = crate::init_cuda_and_make_context(0).unwrap();
-    let n = 257;
-    let vin = (1..n).map(|v| v as u32).collect::<Vec<u32>>();
-    let din: CuVec<u32> = CuVec::from_slice(&vin).unwrap();
-    let stream = crate::create_stream_in_current_context().unwrap();
-    set_consecutive_sequence(stream, &din);
     {
-        let h_v0 = din.copy_to_host().unwrap();
-        let h_v1 = (0..n - 1).map(|v| v as u32).collect::<Vec<u32>>();
-        assert_eq!(h_v0, h_v1);
+        let n = 257;
+        let vin = (1..n).map(|v| v as u32).collect::<Vec<u32>>();
+        let din: CuVec<u32> = CuVec::from_slice(&vin).unwrap();
+        let stream = crate::create_stream_in_current_context().unwrap();
+        set_consecutive_sequence(stream, &din);
+        {
+            let h_v0 = din.copy_to_host().unwrap();
+            let h_v1 = (0..n - 1).map(|v| v as u32).collect::<Vec<u32>>();
+            assert_eq!(h_v0, h_v1);
+        }
+        cuda_check!(cu::cuStreamDestroy_v2(stream)).unwrap();
     }
-    cuda_check!(cu::cuStreamDestroy_v2(stream)).unwrap();
-    drop(din); // drop before destroy context
     cuda_check!(cu::cuDevicePrimaryCtxRelease_v2(dev)).unwrap();
 }
 
@@ -77,7 +94,13 @@ pub fn permute(
 ) {
     let num_new = new2data.n;
     assert!(new2old.n >= num_new); // inequality in case for new2old is an array of offset
-    let func = crate::load_get_function("array1d", "permute").unwrap();
+    //let func = crate::load_get_function("array1d", "permute").unwrap();
+    let func = crate::cache_func::get_function_cached(
+        "del_cudarc::array1d",
+        del_cudarc_kernels::get("array1d").unwrap(),
+        "permute",
+    )
+    .unwrap();
     let mut builder = crate::Builder::new(stream);
     builder.arg_u32(num_new as u32);
     builder.arg_dptr(new2data.dptr);
@@ -90,6 +113,7 @@ pub fn permute(
 
 #[test]
 fn test_permute() {
+    crate::cache_func::clear();
     let (dev, _ctx) = crate::init_cuda_and_make_context(0).unwrap();
     let stream = crate::create_stream_in_current_context().unwrap();
     {

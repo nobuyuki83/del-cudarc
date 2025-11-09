@@ -9,7 +9,13 @@ pub fn has_duplicates(stream: cu::CUstream, vals: &CuVec<u32>) -> bool {
         crate::load_function_in_module(del_cudarc_kernel::SORTED_ARRAY1D, "has_duplicates")
             .unwrap();
      */
-    let func = crate::load_get_function("sorted_array1d", "has_duplicates").unwrap();
+    // let func = crate::load_get_function("sorted_array1d", "has_duplicates").unwrap();
+    let func = crate::cache_func::get_function_cached(
+        "del_cudarc::sorted_array1d",
+        del_cudarc_kernels::get("sorted_array1d").unwrap(),
+        "has_duplicates",
+    )
+    .unwrap();
     let is_duplicate = CuVec::<u32>::with_capacity(1).unwrap();
     is_duplicate.set_zeros(stream).unwrap();
     let cfg = LaunchConfig {
@@ -28,6 +34,7 @@ pub fn has_duplicates(stream: cu::CUstream, vals: &CuVec<u32>) -> bool {
 
 #[test]
 fn test_has_duplicate() {
+    crate::cache_func::clear();
     let (dev, _ctx) = crate::init_cuda_and_make_context(0).unwrap();
     let stream = crate::create_stream_in_current_context().unwrap();
     {
@@ -54,7 +61,14 @@ pub fn unique(stream: cu::CUstream, idx2val: &CuVec<u32>, idx2jdx: &CuVec<u32>) 
             crate::load_function_in_module(del_cudarc_kernel::SORTED_ARRAY1D, "idx2isdiff")
                 .unwrap();
          */
-        let func = crate::load_get_function("sorted_array1d", "idx2isdiff").unwrap();
+        //let func = crate::load_get_function("sorted_array1d", "idx2isdiff").unwrap();
+        //dbg!(crate::cache_func::MOD_CACHE.get().unwrap().funcs);
+        let func = crate::cache_func::get_function_cached(
+            "del_cudarc::sorted_array1d",
+            del_cudarc_kernels::get("sorted_array1d").unwrap(),
+            "idx2isdiff",
+        )
+        .unwrap();
         let mut builder = crate::Builder::new(stream);
         builder.arg_u32(num_idx as u32);
         builder.arg_dptr(idx2val.dptr);
@@ -68,6 +82,7 @@ pub fn unique(stream: cu::CUstream, idx2val: &CuVec<u32>, idx2jdx: &CuVec<u32>) 
 
 #[test]
 fn test_unique() {
+    crate::cache_func::clear();
     let (dev, _ctx) = crate::init_cuda_and_make_context(0).unwrap();
     let stream = crate::create_stream_in_current_context().unwrap();
     {

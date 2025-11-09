@@ -9,7 +9,13 @@ pub fn sort(stream: cu::CUstream, p2idx: &CuVec<u32>, idx2q: &CuVec<u32>) {
     let (func, _mdl) =
         crate::load_function_in_module(del_cudarc_kernel::OFFSET_ARRAY, "sort").unwrap();
      */
-    let func = crate::load_get_function("offset_array", "sort").unwrap();
+    // let func = crate::load_get_function("offset_array", "sort").unwrap();
+    let func = crate::cache_func::get_function_cached(
+        "del_cudarc::offset_array",
+        del_cudarc_kernels::get("offset_array").unwrap(),
+        "sort",
+    )
+    .unwrap();
     let mut builder = crate::Builder::new(stream);
     builder.arg_u32(np as u32);
     builder.arg_dptr(p2idx.dptr);
@@ -21,24 +27,25 @@ pub fn sort(stream: cu::CUstream, p2idx: &CuVec<u32>, idx2q: &CuVec<u32>) {
 
 #[test]
 fn test_sort_indexed_array() {
+    crate::cache_func::clear();
     let (dev, _ctx) = crate::init_cuda_and_make_context(0).unwrap();
-    let stream = crate::create_stream_in_current_context().unwrap();
-    let n = 3;
-    let m = 10;
-    let idx2q_in = (0..n * m).rev().collect::<Vec<u32>>();
-    let p2idx = (0..n + 1).map(|v| v * m).collect::<Vec<u32>>();
-    let idx2q_trg = (0..n)
-        .rev()
-        .flat_map(|v| (v * m..v * m + m))
-        .collect::<Vec<u32>>();
-    let p2idx = CuVec::from_slice(&p2idx).unwrap();
-    let idx2q = CuVec::from_slice(&idx2q_in).unwrap();
-    sort(stream, &p2idx, &idx2q);
-    let idx2q_out = idx2q.copy_to_host().unwrap();
-    assert_eq!(idx2q_out, idx2q_trg);
-    cuda_check!(cu::cuStreamDestroy_v2(stream)).unwrap();
-    drop(p2idx); // drop before destroy context
-    drop(idx2q); // drop before destroy context
+    {
+        let stream = crate::create_stream_in_current_context().unwrap();
+        let n = 3;
+        let m = 10;
+        let idx2q_in = (0..n * m).rev().collect::<Vec<u32>>();
+        let p2idx = (0..n + 1).map(|v| v * m).collect::<Vec<u32>>();
+        let idx2q_trg = (0..n)
+            .rev()
+            .flat_map(|v| (v * m..v * m + m))
+            .collect::<Vec<u32>>();
+        let p2idx = CuVec::from_slice(&p2idx).unwrap();
+        let idx2q = CuVec::from_slice(&idx2q_in).unwrap();
+        sort(stream, &p2idx, &idx2q);
+        let idx2q_out = idx2q.copy_to_host().unwrap();
+        assert_eq!(idx2q_out, idx2q_trg);
+        cuda_check!(cu::cuStreamDestroy_v2(stream)).unwrap();
+    }
     cuda_check!(cu::cuDevicePrimaryCtxRelease_v2(dev)).unwrap();
 }
 
@@ -53,7 +60,13 @@ pub fn inverse_map(stream: cu::CUstream, idx2jdx: &CuVec<u32>, jdx2idx_offset: &
         let (func, _mdl) =
             crate::load_function_in_module(del_cudarc_kernel::OFFSET_ARRAY, "inverse_map").unwrap();
          */
-        let func = crate::load_get_function("offset_array", "inverse_map").unwrap();
+        //let func = crate::load_get_function("offset_array", "inverse_map").unwrap();
+        let func = crate::cache_func::get_function_cached(
+            "del_cudarc::offset_array",
+            del_cudarc_kernels::get("offset_array").unwrap(),
+            "inverse_map",
+        )
+        .unwrap();
         let mut builder = crate::Builder::new(stream);
         builder.arg_u32(num_jdx as u32);
         builder.arg_dptr(jdx2idx_offset.dptr);
@@ -67,6 +80,7 @@ pub fn inverse_map(stream: cu::CUstream, idx2jdx: &CuVec<u32>, jdx2idx_offset: &
 
 #[test]
 pub fn test_inverse_map() {
+    crate::cache_func::clear();
     let (dev, _ctx) = crate::init_cuda_and_make_context(0).unwrap();
     let stream = crate::create_stream_in_current_context().unwrap();
     //

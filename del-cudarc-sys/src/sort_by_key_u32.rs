@@ -56,7 +56,13 @@ pub fn radix_sort_by_key_u32(
             )
             .unwrap();
              */
-            let func = crate::load_get_function("sort_by_key_u32", "gpu_radix_sort_local").unwrap();
+            //let func = crate::load_get_function("sort_by_key_u32", "gpu_radix_sort_local").unwrap();
+            let func = crate::cache_func::get_function_cached(
+                "del_cudarc::sort_by_key_u32",
+                del_cudarc_kernels::get("sort_by_key_u32").unwrap(),
+                "gpu_radix_sort_local",
+            )
+            .unwrap();
             {
                 let mut builder = crate::Builder::new(stream);
                 builder.arg_dptr(d_out.dptr);
@@ -90,7 +96,13 @@ pub fn radix_sort_by_key_u32(
             )
             .unwrap();
              */
-            let func = crate::load_get_function("sort_by_key_u32", "gpu_glbl_shuffle").unwrap();
+            //let func = crate::load_get_function("sort_by_key_u32", "gpu_glbl_shuffle").unwrap();
+            let func = crate::cache_func::get_function_cached(
+                "del_cudarc::sort_by_key_u32",
+                del_cudarc_kernels::get("sort_by_key_u32").unwrap(),
+                "gpu_glbl_shuffle",
+            )
+            .unwrap();
             let mut builder = crate::Builder::new(stream);
             builder.arg_dptr(d_in.dptr);
             builder.arg_dptr(d_out.dptr);
@@ -109,6 +121,7 @@ pub fn radix_sort_by_key_u32(
 
 #[test]
 fn test_u32() -> Result<(), cudarc::driver::DriverError> {
+    crate::cache_func::clear();
     let (dev, _ctx) = crate::init_cuda_and_make_context(0).unwrap();
     let ns = [
         13usize,

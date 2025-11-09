@@ -19,7 +19,13 @@ pub fn add_block_sums_u32(
     let (func, _mdl) =
         crate::load_function_in_module(del_cudarc_kernel::CUMSUM, "gpu_add_block_sums").unwrap();
      */
-    let func = crate::load_get_function("cumsum", "gpu_add_block_sums").unwrap();
+    //let func = crate::load_get_function("cumsum", "gpu_add_block_sums").unwrap();
+    let func = crate::cache_func::get_function_cached(
+        "del_cudarc::cumsum",
+        del_cudarc_kernels::get("cumsum").unwrap(),
+        "gpu_add_block_sums",
+    )
+    .unwrap();
     let mut builder = crate::Builder::new(stream);
     builder.arg_dptr(vout_dev.dptr);
     builder.arg_dptr(d_block_sums.dptr);
@@ -81,7 +87,13 @@ pub fn block_sums(
         let (fnc, _mdl) =
             crate::load_function_in_module(del_cudarc_kernel::CUMSUM, "gpu_prescan").unwrap();
          */
-        let func = crate::load_get_function("cumsum", "gpu_prescan").unwrap();
+        //let func = crate::load_get_function("cumsum", "gpu_prescan").unwrap();
+        let func = crate::cache_func::get_function_cached(
+            "del_cudarc::cumsum",
+            del_cudarc_kernels::get("cumsum").unwrap(),
+            "gpu_prescan",
+        )
+        .unwrap();
         let mut builder = crate::Builder::new(stream2);
         builder.arg_dptr(d_out.dptr);
         builder.arg_dptr(d_in.dptr);
@@ -109,7 +121,13 @@ pub fn block_sums(
         let gpu_prescan =
             crate::load_function_in_module(del_cudarc_kernel::CUMSUM, "gpu_prescan").unwrap();
          */
-        let func = crate::load_get_function("cumsum", "gpu_prescan").unwrap();
+        //let func = crate::load_get_function("cumsum", "gpu_prescan").unwrap();
+        let func = crate::cache_func::get_function_cached(
+            "del_cudarc::cumsum",
+            del_cudarc_kernels::get("cumsum").unwrap(),
+            "gpu_prescan",
+        )
+        .unwrap();
         let mut builder = crate::Builder::new(stream3);
         builder.arg_dptr(d_block_sums.dptr);
         builder.arg_dptr(d_block_sums.dptr);
@@ -158,6 +176,7 @@ pub fn exclusive_scan(stream: cu::CUstream, vin: &CuVec<u32>, vout: &CuVec<u32>)
 
 #[test]
 fn test_hoge() {
+    crate::cache_func::clear();
     let (dev, _ctx) = crate::init_cuda_and_make_context(0).unwrap();
     let stream = crate::create_stream_in_current_context().unwrap();
     let nvs = [
@@ -201,6 +220,5 @@ fn test_hoge() {
             "illegal memory access"
         );
     }
-    crate::cuda_check!(cu::cuStreamDestroy_v2(stream)).unwrap();
     crate::cuda_check!(cu::cuDevicePrimaryCtxRelease_v2(dev)).unwrap();
 }

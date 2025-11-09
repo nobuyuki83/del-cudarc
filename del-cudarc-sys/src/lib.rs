@@ -4,6 +4,7 @@ use std::marker::PhantomData;
 pub mod array1d;
 pub mod cumsum;
 
+pub mod cache_func;
 pub mod offset_array;
 pub mod sort_by_key_u32;
 pub mod sorted_array1d;
@@ -78,6 +79,7 @@ pub fn init_cuda_and_make_context(device_id: i32) -> Result<(cu::CUdevice, cu::C
     cuda_check!(cu::cuDeviceGet(&mut dev, device_id))?;
     let mut ctx: cu::CUcontext = std::ptr::null_mut();
     cuda_check!(cu::cuDevicePrimaryCtxRetain(&mut ctx, dev))?;
+    // cuda_check!(cu::cuCtxCreate_v2(&mut ctx, 0, dev))?;
     cuda_check!(cu::cuCtxSetCurrent(ctx))?;
     Ok((dev, ctx))
 }
