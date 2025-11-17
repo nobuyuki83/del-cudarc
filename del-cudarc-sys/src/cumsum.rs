@@ -15,11 +15,6 @@ pub fn add_block_sums_u32(
         block_dim: (block_sz, 1, 1),
         shared_mem_bytes: 0,
     };
-    /*
-    let (func, _mdl) =
-        crate::load_function_in_module(del_cudarc_kernel::CUMSUM, "gpu_add_block_sums").unwrap();
-     */
-    //let func = crate::load_get_function("cumsum", "gpu_add_block_sums").unwrap();
     let func = crate::cache_func::get_function_cached(
         "del_cudarc::cumsum",
         del_cudarc_kernels::get("cumsum").unwrap(),
@@ -83,11 +78,6 @@ pub fn block_sums(
             block_dim: (block_size, 1, 1),
             shared_mem_bytes: (u32::BITS / 8u32) * shmem_size,
         };
-        /*
-        let (fnc, _mdl) =
-            crate::load_function_in_module(del_cudarc_kernel::CUMSUM, "gpu_prescan").unwrap();
-         */
-        //let func = crate::load_get_function("cumsum", "gpu_prescan").unwrap();
         let func = crate::cache_func::get_function_cached(
             "del_cudarc::cumsum",
             del_cudarc_kernels::get("cumsum").unwrap(),
@@ -103,7 +93,6 @@ pub fn block_sums(
         builder.arg_u32(max_elems_per_block);
         builder.launch_kernel(func, cfg).unwrap();
     }
-    // dbg!(d_out.copy_to_host().unwrap());
 
     // Sum scan total sums produced by each block
     // Use basic implementation if number of total sums is <= 2 * block_sz
@@ -117,11 +106,6 @@ pub fn block_sums(
             block_dim: (block_size, 1, 1),
             shared_mem_bytes: u32::BITS / 8u32 * shmem_size,
         };
-        /*
-        let gpu_prescan =
-            crate::load_function_in_module(del_cudarc_kernel::CUMSUM, "gpu_prescan").unwrap();
-         */
-        //let func = crate::load_get_function("cumsum", "gpu_prescan").unwrap();
         let func = crate::cache_func::get_function_cached(
             "del_cudarc::cumsum",
             del_cudarc_kernels::get("cumsum").unwrap(),

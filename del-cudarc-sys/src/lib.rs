@@ -7,6 +7,7 @@ pub mod cumsum;
 pub mod cache_func;
 pub mod offset_array;
 pub mod sort_by_key_u32;
+pub mod sort_by_key_u64;
 pub mod sorted_array1d;
 
 pub mod cu {
