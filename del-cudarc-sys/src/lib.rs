@@ -361,3 +361,31 @@ fn test_get_ptx_compiler_version() {
     let (major, minor, build) = get_ptx_compiler_version();
     dbg!(major, minor, build);
 }
+
+unsafe fn check_cu_error(res: cu::CUresult, context: &str) {
+    use std::{ffi::CStr, os::raw::c_char};
+    if res == cu::CUresult::CUDA_SUCCESS {
+        return;
+    }
+
+    // エラー名とメッセージを取得
+    let mut name_ptr: *const c_char = std::ptr::null();
+    let mut msg_ptr: *const c_char = std::ptr::null();
+
+    unsafe {
+        cu::cuGetErrorName(res, &mut name_ptr);
+        cu::cuGetErrorString(res, &mut msg_ptr);
+
+        let name = if !name_ptr.is_null() {
+            CStr::from_ptr(name_ptr).to_string_lossy()
+        } else {
+            "<null name>".into()
+        };
+        let msg = if !msg_ptr.is_null() {
+            CStr::from_ptr(msg_ptr).to_string_lossy()
+        } else {
+            "<null msg>".into()
+        };
+        eprintln!("[CUDA ERROR] {}: {:?} ({}) - {}", context, res, name, msg);
+    }
+}

@@ -1,12 +1,6 @@
 use crate::{CuVec, LaunchConfig, cu, cuda_check};
 
 pub fn set_consecutive_sequence(stream: cu::CUstream, din: &CuVec<u32>) {
-    /*
-    let (func, _mdl) =
-        crate::load_function_in_module(del_cudarc_kernel::ARRAY1D, "set_consecutive_sequence")
-            .unwrap();
-     */
-    //let func = crate::load_get_function("array1d", "set_consecutive_sequence").unwrap();
     let func = crate::cache_func::get_function_cached(
         "del_cudarc::array1d",
         del_cudarc_kernels::get("array1d").unwrap(),
@@ -92,6 +86,7 @@ pub fn permute(
     new2old: &CuVec<u32>,
     old2data: &CuVec<u32>,
 ) {
+    //del-cudarc-thrust::thrust_sort_u64_inplace_raw(new2data.dptr, new2data.n as i32, stream);
     let num_new = new2data.n;
     assert!(new2old.n >= num_new); // inequality in case for new2old is an array of offset
     //let func = crate::load_get_function("array1d", "permute").unwrap();
@@ -124,5 +119,26 @@ fn test_permute() {
         dbg!(new2data.copy_to_host().unwrap());
     }
     cuda_check!(cu::cuStreamDestroy_v2(stream)).unwrap();
+    cuda_check!(cu::cuDevicePrimaryCtxRelease_v2(dev)).unwrap();
+}
+
+pub fn sort_u64_inplace(stream: cu::CUstream, vals: &CuVec<u64>) {
+    let stream_ptr = stream as *mut std::ffi::c_void;
+    let ptr_u64 = vals.dptr as usize as *mut u64;
+    unsafe { del_cudarc_thrust::thrust_sort_u64_inplace(ptr_u64, vals.n as u32, stream_ptr) };
+}
+
+#[test]
+fn test_sort_u64_inplace() {
+    crate::cache_func::clear();
+    let (dev, _ctx) = crate::init_cuda_and_make_context(0).unwrap();
+    {
+        let stream = crate::create_stream_in_current_context().unwrap();
+        let vals_gpu = CuVec::from_slice(&[3u64, 1, 5, 4, 100, 53, 3]).unwrap();
+        sort_u64_inplace(stream, &vals_gpu);
+        let vals_cpu = vals_gpu.copy_to_host().unwrap();
+        dbg!(&vals_cpu);
+        cuda_check!(cu::cuStreamDestroy_v2(stream)).unwrap();
+    }
     cuda_check!(cu::cuDevicePrimaryCtxRelease_v2(dev)).unwrap();
 }

@@ -5,11 +5,6 @@ use crate::cuda_check;
 
 pub fn sort(stream: cu::CUstream, p2idx: &CuVec<u32>, idx2q: &CuVec<u32>) {
     let np = p2idx.n - 1;
-    /*
-    let (func, _mdl) =
-        crate::load_function_in_module(del_cudarc_kernel::OFFSET_ARRAY, "sort").unwrap();
-     */
-    // let func = crate::load_get_function("offset_array", "sort").unwrap();
     let func = crate::cache_func::get_function_cached(
         "del_cudarc::offset_array",
         del_cudarc_kernels::get("offset_array").unwrap(),
@@ -56,11 +51,6 @@ pub fn inverse_map(stream: cu::CUstream, idx2jdx: &CuVec<u32>, jdx2idx_offset: &
     let num_idx = idx2jdx.n;
     let num_jdx = jdx2idx_offset.n - 1;
     {
-        /*
-        let (func, _mdl) =
-            crate::load_function_in_module(del_cudarc_kernel::OFFSET_ARRAY, "inverse_map").unwrap();
-         */
-        //let func = crate::load_get_function("offset_array", "inverse_map").unwrap();
         let func = crate::cache_func::get_function_cached(
             "del_cudarc::offset_array",
             del_cudarc_kernels::get("offset_array").unwrap(),

@@ -104,10 +104,29 @@ pub fn radix_sort_by_key_u64(
     Ok(())
 }
 
+/// # Safety
+pub unsafe fn radix_sort_by_key_u64_u32(
+    stream: cu::CUstream,
+    keys: &CuVec<u64>,
+    vals: &CuVec<u32>,
+) -> Result<(), cudarc::driver::DriverError> {
+    let n = keys.n;
+    assert_eq!(vals.n, n);
+    let stream_ptr: *mut std::ffi::c_void = stream as *mut std::ffi::c_void;
+    let keys_ptr: *mut u64 = keys.dptr as usize as *mut u64;
+    let vals_ptr: *mut u32 = vals.dptr as usize as *mut u32;
+    unsafe {
+        del_cudarc_thrust::thrust_sort_by_key_u64_u32(keys_ptr, vals_ptr, n as u32, stream_ptr)
+    };
+    let res = unsafe { cu::cuStreamSynchronize(stream) };
+    unsafe { crate::check_cu_error(res, "thrust_sort_by_key_u64_u32 + cuCtxSynchronize") };
+    Ok(())
+}
+
 #[test]
 fn test_u64() -> Result<(), cudarc::driver::DriverError> {
     crate::cache_func::clear();
-    let _ctx = cudarc::driver::CudaContext::new(0)?;
+    let (dev, _ctx) = crate::init_cuda_and_make_context(0).unwrap();
     let ns = [
         13usize,
         1023,
@@ -119,36 +138,46 @@ fn test_u64() -> Result<(), cudarc::driver::DriverError> {
     use rand::Rng;
     use rand_chacha::rand_core::SeedableRng;
     for n in ns {
-        let stream = crate::create_stream_in_current_context().unwrap();
         let mut rng = rand_chacha::ChaChaRng::from_seed([0; 32]);
-        let vin = {
+        let keys = {
             let mut vin: Vec<u64> = vec![];
             (0..n).for_each(|_| vin.push(rng.random()));
             vin
         };
-        let idxin: Vec<u32> = (0u32..n as u32).collect::<Vec<_>>();
-        let idxin_dev = CuVec::<u32>::from_slice(&idxin).unwrap();
-        let vio_dev = crate::CuVec::<u64>::from_slice(&vin).unwrap();
-        radix_sort_by_key_u64(stream, &vio_dev, &idxin_dev)?;
-        let vout0 = {
+        let vals: Vec<u32> = (0u32..n as u32).collect::<Vec<_>>();
+        let keys_out_cpu = {
             // naive cpu computation
-            let mut vout0 = vin.clone();
+            let mut vout0 = keys.clone();
             vout0.sort();
             vout0
         };
-        let vout = vio_dev.copy_to_host().unwrap();
-        vout.iter().zip(vout0.iter()).for_each(|(a, b)| {
-            assert_eq!(a, b, "{} {}", a, b);
-        });
-        let idxout = idxin_dev.copy_to_host().unwrap();
-        for jdx in 1..idxout.len() {
-            assert!(vin[idxout[jdx - 1] as usize] <= vin[idxout[jdx] as usize]);
+        let vals_out_cpu = {
+            let mut vals_out0 = vals.clone();
+            vals_out0.sort_by(|&a, &b| keys[a as usize].cmp(&keys[b as usize]));
+            vals_out0
+        };
+        {
+            let stream = crate::create_stream_in_current_context().unwrap();
+            let keys_dev = CuVec::<u64>::from_slice(&keys).unwrap();
+            let vals_dev = CuVec::<u32>::from_slice(&vals).unwrap();
+            unsafe { radix_sort_by_key_u64_u32(stream, &keys_dev, &vals_dev) }.unwrap();
+            let keys_out = keys_dev.copy_to_host().unwrap();
+            let vals_out = vals_dev.copy_to_host().unwrap();
+            keys_out.iter().zip(keys_out_cpu.iter()).for_each(|(a, b)| {
+                assert_eq!(a, b, "{} {}", a, b);
+            });
+            for jdx in 1..vals_out.len() {
+                assert!(keys[vals_out[jdx - 1] as usize] <= keys[vals_out[jdx] as usize]);
+            }
+            vals_out
+                .iter()
+                .zip(vals_out_cpu.iter())
+                .for_each(|(&a, &b)| {
+                    assert_eq!(a, b);
+                });
+            crate::cuda_check!(cu::cuStreamDestroy_v2(stream)).unwrap();
         }
-        let mut idxout0 = idxin.clone();
-        idxout0.sort_by(|&a, &b| vin[a as usize].cmp(&vin[b as usize]));
-        idxout.iter().zip(idxout0.iter()).for_each(|(&a, &b)| {
-            assert_eq!(a, b);
-        })
     }
+    crate::cuda_check!(cu::cuDevicePrimaryCtxRelease_v2(dev)).unwrap();
     Ok(())
 }

@@ -1,0 +1,11 @@
+[package]
+name = "del-cudarc-thrust"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "del_cudarc_thrust"
+
+[dependencies]
+
+[build-dependencies]
