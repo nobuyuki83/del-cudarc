@@ -1,7 +1,6 @@
 [workspace]
 members = [
     "del-cudarc-kernel",
-    "del-cudarc-dlpack",
     "del-cudarc-safe",
     "del-cudarc-sys",
     "del-cudarc-kernels",
