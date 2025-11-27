@@ -86,10 +86,8 @@ pub fn permute(
     new2old: &CuVec<u32>,
     old2data: &CuVec<u32>,
 ) {
-    //del-cudarc-thrust::thrust_sort_u64_inplace_raw(new2data.dptr, new2data.n as i32, stream);
     let num_new = new2data.n;
     assert!(new2old.n >= num_new); // inequality in case for new2old is an array of offset
-    //let func = crate::load_get_function("array1d", "permute").unwrap();
     let func = crate::cache_func::get_function_cached(
         "del_cudarc::array1d",
         del_cudarc_kernels::get("array1d").unwrap(),
@@ -141,4 +139,19 @@ fn test_sort_u64_inplace() {
         cuda_check!(cu::cuStreamDestroy_v2(stream)).unwrap();
     }
     cuda_check!(cu::cuDevicePrimaryCtxRelease_v2(dev)).unwrap();
+}
+
+
+pub fn fill_f32(stream: cu::CUstream, elem2val: &CuVec<f32>, val: f32) {
+    let num_elem = elem2val.n;
+    let func = crate::cache_func::get_function_cached(
+        "del_cudarc::array1d",
+        del_cudarc_kernels::get("array1d").unwrap(),
+        "fill_f32",
+    ).unwrap();
+    let mut builder = crate::Builder::new(stream);
+    builder.arg_u32(num_elem as u32);
+    builder.arg_dptr(elem2val.dptr);
+    builder.arg_f32(val);
+    builder.launch_kernel(func, LaunchConfig::for_num_elems(num_elem as u32)).unwrap();
 }

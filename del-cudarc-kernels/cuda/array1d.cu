@@ -1,8 +1,8 @@
 #include <stdint.h>
 
-extern "C" {
 
-__global__
+
+extern "C" __global__
 void set_consecutive_sequence(
     uint32_t num_d_out,
     uint32_t* d_out)
@@ -13,7 +13,7 @@ void set_consecutive_sequence(
     d_out[i_d_out] = i_d_out;
 }
 
-__global__
+extern "C" __global__
 void shift_array_right(
     uint32_t n,
     uint32_t* din,
@@ -27,7 +27,7 @@ void shift_array_right(
     dout[i] = din[i-1];
 }
 
-__global__
+extern "C" __global__
 void permute(
     unsigned int num_new,
     uint32_t* new2data,
@@ -41,7 +41,7 @@ void permute(
     new2data[i_new] = old2data[i_old];
 }
 
-__global__
+extern "C" __global__
 void set_value_at_mask(
     unsigned int n,
     float* elem2value,
@@ -58,4 +58,14 @@ void set_value_at_mask(
     }
 }
 
+extern "C" __global__
+void fill_f32(
+    unsigned int n,
+    float* elem2val,
+    float val)
+{
+    int i_elem = blockDim.x * blockIdx.x + threadIdx.x;
+    if( i_elem >= n ){ return; }
+    //
+    elem2val[i_elem] = val;
 }
