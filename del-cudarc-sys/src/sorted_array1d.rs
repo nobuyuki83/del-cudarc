@@ -56,13 +56,6 @@ pub fn unique(stream: cu::CUstream, idx2val: &CuVec<u32>, idx2jdx: &CuVec<u32>) 
     assert_eq!(idx2jdx.n, num_idx);
     let idx2isdiff = CuVec::<u32>::with_capacity(num_idx).unwrap();
     {
-        /*
-        let (func, _mdl) =
-            crate::load_function_in_module(del_cudarc_kernel::SORTED_ARRAY1D, "idx2isdiff")
-                .unwrap();
-         */
-        //let func = crate::load_get_function("sorted_array1d", "idx2isdiff").unwrap();
-        //dbg!(crate::cache_func::MOD_CACHE.get().unwrap().funcs);
         let func = crate::cache_func::get_function_cached(
             "del_cudarc::sorted_array1d",
             del_cudarc_kernels::get("sorted_array1d").unwrap(),

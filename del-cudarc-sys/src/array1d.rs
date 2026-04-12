@@ -155,3 +155,25 @@ pub fn fill_f32(stream: cu::CUstream, elem2val: &CuVec<f32>, val: f32) {
     builder.arg_f32(val);
     builder.launch_kernel(func, LaunchConfig::for_num_elems(num_elem as u32)).unwrap();
 }
+
+pub fn compaction_u32(stream: cu::CUstream, idx2flag: &CuVec<u32>, num_dim: usize, idx2val: &CuVec<u32>) -> CuVec<u32> {
+    let num_idx = idx2flag.n - 1; // because of the prefix_sum, `idx2flag` should have one additional element at the end
+    assert_eq!(idx2val.n, num_idx * num_dim);
+    let idx2jdx = CuVec::<u32>::alloc_zeros(num_idx as usize + 1, stream).unwrap();
+    crate::cumsum::exclusive_scan(stream, &idx2flag, &idx2jdx);
+    let num_jdx = idx2jdx.last().unwrap();
+    let jdx2val = CuVec::<u32>::alloc_zeros(num_jdx as usize * num_dim, stream).unwrap();
+    let func = crate::cache_func::get_function_cached(
+        "del_cudarc::array1d",
+        del_cudarc_kernels::get("array1d").unwrap(),
+        "compaction_u32",
+    ).unwrap();
+    let mut builder = crate::Builder::new(stream);
+    builder.arg_u32(num_idx as u32);
+    builder.arg_dptr(idx2jdx.dptr);
+    builder.arg_u32(num_dim as u32);
+    builder.arg_dptr(idx2val.dptr);
+    builder.arg_dptr(jdx2val.dptr);
+    builder.launch_kernel(func, LaunchConfig::for_num_elems(num_idx as u32)).unwrap();
+    jdx2val
+}

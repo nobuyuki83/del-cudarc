@@ -69,3 +69,22 @@ void fill_f32(
     //
     elem2val[i_elem] = val;
 }
+
+extern "C" __global__
+void compaction_u32(
+  uint32_t n,
+  const uint32_t* idx2jdx,
+  uint32_t num_dim,
+  const uint32_t* idx2val,
+  uint32_t* jdx2val)
+{
+    int i_idx = blockDim.x * blockIdx.x + threadIdx.x;
+    if (i_idx >= n ){ return; }
+    //
+    const auto jdx0 = idx2jdx[i_idx];
+    const auto jdx1 = idx2jdx[i_idx+1];
+    if (jdx0 == jdx1){ return; }
+    for (unsigned int i_dim = 0; i_dim < num_dim; ++i_dim) {
+        jdx2val[jdx0 * num_dim + i_dim] = idx2val[i_idx * num_dim + i_dim];
+    }
+}
