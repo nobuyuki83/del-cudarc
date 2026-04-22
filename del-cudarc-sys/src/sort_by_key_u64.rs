@@ -104,23 +104,12 @@ pub fn radix_sort_by_key_u64(
     Ok(())
 }
 
-/// # Safety
-pub unsafe fn radix_sort_by_key_u64_u32(
+pub fn radix_sort_by_key_u64_u32(
     stream: cu::CUstream,
     keys: &CuVec<u64>,
     vals: &CuVec<u32>,
 ) -> Result<(), cudarc::driver::DriverError> {
-    let n = keys.n;
-    assert_eq!(vals.n, n);
-    let stream_ptr: *mut std::ffi::c_void = stream as *mut std::ffi::c_void;
-    let keys_ptr: *mut u64 = keys.dptr as usize as *mut u64;
-    let vals_ptr: *mut u32 = vals.dptr as usize as *mut u32;
-    unsafe {
-        del_cudarc_thrust::thrust_sort_by_key_u64_u32(keys_ptr, vals_ptr, n as u32, stream_ptr)
-    };
-    let res = unsafe { cu::cuStreamSynchronize(stream) };
-    unsafe { crate::check_cu_error(res, "thrust_sort_by_key_u64_u32 + cuCtxSynchronize") };
-    Ok(())
+    radix_sort_by_key_u64(stream, keys, vals)
 }
 
 #[test]

@@ -32,7 +32,7 @@ fn test_sort_indexed_array() {
         let p2idx = (0..n + 1).map(|v| v * m).collect::<Vec<u32>>();
         let idx2q_trg = (0..n)
             .rev()
-            .flat_map(|v| (v * m..v * m + m))
+            .flat_map(|v| v * m..v * m + m)
             .collect::<Vec<u32>>();
         let p2idx = CuVec::from_slice(&p2idx).unwrap();
         let idx2q = CuVec::from_slice(&idx2q_in).unwrap();

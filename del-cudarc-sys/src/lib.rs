@@ -6,6 +6,8 @@ pub mod cumsum;
 
 pub mod cache_func;
 pub mod offset_array;
+pub mod sort;
+pub mod sort_by_key_thrust;
 pub mod sort_by_key_u32;
 pub mod sort_by_key_u64;
 pub mod sorted_array1d;
@@ -19,7 +21,7 @@ pub mod cu {
 macro_rules! cuda_check {
     ($e:expr) => {
         #[allow(clippy::macro_metavars_in_unsafe)]
-        let res = unsafe { $e };
+        let res = unsafe { $e };d
         if res != cu::CUresult::CUDA_SUCCESS {
             panic!("CUDA Error: {:?}", res);
         }

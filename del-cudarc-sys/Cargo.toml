@@ -6,9 +6,6 @@ edition.workspace = true
 [dependencies]
 #del-cudarc-kernel.workspace = true
 del-cudarc-kernels.workspace = true
-#del-cudarc-thrust.workspace = true
-# del-cudarc-thrust = { path = "../del-cudarc-thrust"}
-del-cudarc-thrust = { path = "../del-cudarc-thrust" }
 cudarc.workspace = true
 dashmap = "6.1.0"
 
