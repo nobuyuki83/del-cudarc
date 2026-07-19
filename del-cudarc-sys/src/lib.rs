@@ -334,6 +334,16 @@ impl LaunchConfig {
             shared_mem_bytes: 0,
         }
     }
+
+    pub fn for_num_elems_with_num_threads(ne: u32, nt: u32) -> Self {
+        assert!(nt>0);
+        let num_blocks = ne.div_ceil(nt);
+        Self {
+            grid_dim: (num_blocks, 1, 1),
+            block_dim: (nt, 1, 1),
+            shared_mem_bytes: 0,
+        }
+    }
 }
 
 pub fn get_ptx_compiler_version() -> (i32, i32, i32) {
@@ -364,7 +374,7 @@ fn test_get_ptx_compiler_version() {
     dbg!(major, minor, build);
 }
 
-unsafe fn check_cu_error(res: cu::CUresult, context: &str) {
+pub unsafe fn check_cu_error(res: cu::CUresult, context: &str) {
     use std::{ffi::CStr, os::raw::c_char};
     if res == cu::CUresult::CUDA_SUCCESS {
         return;
