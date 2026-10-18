@@ -37,7 +37,7 @@ pub fn sort_u32_by_u32_key(
 fn test_sort_u64_by_u32_key() -> Result<(), String> {
     crate::cache_func::clear();
     let (dev, _ctx) = crate::init_cuda_and_make_context(0).unwrap();
-    use rand::Rng;
+    use rand::RngExt;
     use rand_chacha::rand_core::SeedableRng;
     let ns = [
         13usize,
@@ -59,7 +59,7 @@ fn test_sort_u64_by_u32_key() -> Result<(), String> {
         let stream = crate::create_stream_in_current_context().unwrap();
         let keys_dev = CuVec::<u64>::from_slice(&keys).unwrap();
         let vals_dev = CuVec::<u32>::from_slice(&vals).unwrap();
-        unsafe { sort_u64_by_u32_key(stream, &keys_dev, &vals_dev) }.unwrap();
+        sort_u64_by_u32_key(stream, &keys_dev, &vals_dev).unwrap();
         let keys_out = keys_dev.copy_to_host().unwrap();
         let vals_out = vals_dev.copy_to_host().unwrap();
         keys_out
@@ -79,7 +79,7 @@ fn test_sort_u64_by_u32_key() -> Result<(), String> {
 fn test_sort_u32_by_u32_key() -> Result<(), String> {
     crate::cache_func::clear();
     let (dev, _ctx) = crate::init_cuda_and_make_context(0).unwrap();
-    use rand::Rng;
+    use rand::RngExt;
     use rand_chacha::rand_core::SeedableRng;
     let ns = [
         13usize,
@@ -101,7 +101,7 @@ fn test_sort_u32_by_u32_key() -> Result<(), String> {
         let stream = crate::create_stream_in_current_context().unwrap();
         let keys_dev = CuVec::<u32>::from_slice(&keys).unwrap();
         let vals_dev = CuVec::<u32>::from_slice(&vals).unwrap();
-        unsafe { sort_u32_by_u32_key(stream, &keys_dev, &vals_dev) }.unwrap();
+        sort_u32_by_u32_key(stream, &keys_dev, &vals_dev).unwrap();
         let keys_out = keys_dev.copy_to_host().unwrap();
         let vals_out = vals_dev.copy_to_host().unwrap();
         keys_out

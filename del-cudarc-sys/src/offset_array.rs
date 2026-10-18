@@ -16,7 +16,10 @@ pub fn sort(stream: cu::CUstream, p2idx: &CuVec<u32>, idx2q: &CuVec<u32>) {
     builder.arg_dptr(p2idx.dptr);
     builder.arg_dptr(idx2q.dptr);
     builder
-        .launch_kernel(func, LaunchConfig::for_num_elems(np as u32))
+        .launch_kernel(
+            func,
+            LaunchConfig::from_num_thread_for_max_occupancy(np as u32, func, 0, 0).unwrap(),
+        )
         .unwrap();
 }
 
@@ -63,7 +66,11 @@ pub fn inverse_map(stream: cu::CUstream, idx2jdx: &CuVec<u32>, jdx2idx_offset: &
         builder.arg_u32(num_idx as u32);
         builder.arg_dptr(idx2jdx.dptr);
         builder
-            .launch_kernel(func, LaunchConfig::for_num_elems(num_jdx as u32 + 1))
+            .launch_kernel(
+                func,
+                LaunchConfig::from_num_thread_for_max_occupancy(num_jdx as u32 + 1, func, 0, 0)
+                    .unwrap(),
+            )
             .unwrap();
     }
 }
@@ -83,7 +90,7 @@ pub fn test_inverse_map() {
         assert_eq!(jdx2idx.copy_to_host().unwrap(), vec!(0, 1, 2, 3, 5, 6));
     }
     //
-    use rand::Rng;
+    use rand::RngExt;
     use rand::SeedableRng;
     let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(0);
     for _i in 0..10 {

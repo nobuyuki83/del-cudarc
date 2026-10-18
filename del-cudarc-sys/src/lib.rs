@@ -321,28 +321,46 @@ pub struct LaunchConfig {
 }
 
 impl LaunchConfig {
-    /// Creates a [cudarc::driver::LaunchConfig] with:
-    /// - block_dim == `1024`
-    /// - grid_dim == `(n + 1023) / 1024`
-    /// - shared_mem_bytes == `0`
-    pub fn for_num_elems(n: u32) -> Self {
-        const NUM_THREADS: u32 = 1024;
-        let num_blocks = n.div_ceil(NUM_THREADS);
+    /// Launches at least `num_thread` threads in total, `block_size` threads per block
+    pub fn for_num_threads_with_block_size(num_thread: u32, block_size: u32) -> Self {
+        assert!(block_size > 0);
+        let num_blocks = num_thread.div_ceil(block_size);
         Self {
             grid_dim: (num_blocks, 1, 1),
-            block_dim: (NUM_THREADS, 1, 1),
+            block_dim: (block_size, 1, 1),
             shared_mem_bytes: 0,
         }
     }
 
-    pub fn for_num_elems_with_num_threads(ne: u32, nt: u32) -> Self {
-        assert!(nt>0);
-        let num_blocks = ne.div_ceil(nt);
-        Self {
+    /// Launches at least `num_thread` threads in total, with the block size that maximizes
+    /// occupancy for `function` (chosen by `cuOccupancyMaxPotentialBlockSize`).
+    /// - `shared_mem_bytes`: dynamic shared memory per block (bytes)
+    /// - `maximum_block_size`: max block size to consider (`0` means no limit)
+    #[allow(clippy::not_unsafe_ptr_arg_deref)]
+    pub fn from_num_thread_for_max_occupancy(
+        num_thread: u32,
+        function: cu::CUfunction,
+        shared_mem_bytes: u32,
+        maximum_block_size: u32,
+    ) -> Result<Self, String> {
+        let mut min_grid_size: std::ffi::c_int = 0;
+        let mut block_size: std::ffi::c_int = 0;
+        cuda_check!(cu::cuOccupancyMaxPotentialBlockSize(
+            &mut min_grid_size,
+            &mut block_size,
+            function,
+            None,
+            shared_mem_bytes as usize,
+            maximum_block_size as std::ffi::c_int,
+        ))?;
+        assert!(block_size > 0);
+        let block_size = block_size as u32;
+        let num_blocks = num_thread.div_ceil(block_size).max(1);
+        Ok(Self {
             grid_dim: (num_blocks, 1, 1),
-            block_dim: (nt, 1, 1),
-            shared_mem_bytes: 0,
-        }
+            block_dim: (block_size, 1, 1),
+            shared_mem_bytes,
+        })
     }
 }
 
@@ -359,7 +377,10 @@ pub fn get_ptx_compiler_version() -> (i32, i32, i32) {
         let mut builder = crate::Builder::new(stream);
         builder.arg_dptr(a.dptr);
         builder
-            .launch_kernel(func, LaunchConfig::for_num_elems(1))
+            .launch_kernel(
+                func,
+                LaunchConfig::from_num_thread_for_max_occupancy(1, func, 0, 0).unwrap(),
+            )
             .unwrap();
         a.copy_to_host().unwrap()
     };
@@ -374,7 +395,7 @@ fn test_get_ptx_compiler_version() {
     dbg!(major, minor, build);
 }
 
-pub unsafe fn check_cu_error(res: cu::CUresult, context: &str) {
+pub fn check_cu_error(res: cu::CUresult, context: &str) {
     use std::{ffi::CStr, os::raw::c_char};
     if res == cu::CUresult::CUDA_SUCCESS {
         return;

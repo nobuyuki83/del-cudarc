@@ -17,7 +17,7 @@ pub fn sort_u64_inplace(stream: cu::CUstream, vals: &CuVec<u64>) {
 #[test]
 fn test_sort_u64_inplace() {
     let (dev, _ctx) = crate::init_cuda_and_make_context(0).unwrap();
-    use rand::Rng;
+    use rand::RngExt;
     use rand_chacha::rand_core::SeedableRng;
     let ns = [
         13usize,

@@ -13,7 +13,7 @@ pub fn radix_sort_u32(
     let grid_sz: u32 = {
         let mut grid_sz = d_in_len / max_elems_per_block;
         // Take advantage of the fact that integer division drops the decimals
-        if d_in_len % max_elems_per_block != 0 {
+        if !d_in_len.is_multiple_of(max_elems_per_block) {
             grid_sz += 1;
         }
         grid_sz
@@ -155,7 +155,7 @@ fn test_u32() -> Result<(), cudarc::driver::DriverError> {
         1024 * 1024,
         1024 * 1024 + 1,
     ];
-    use rand::Rng;
+    use rand::RngExt;
     use rand_chacha::rand_core::SeedableRng;
     for n in ns {
         let mut rng = rand_chacha::ChaChaRng::from_seed([0; 32]);

@@ -11,7 +11,10 @@ pub fn set_consecutive_sequence(stream: cu::CUstream, din: &CuVec<u32>) {
     builder.arg_u32(din.n as u32);
     builder.arg_dptr(din.dptr);
     builder
-        .launch_kernel(func, LaunchConfig::for_num_elems(din.n as u32))
+        .launch_kernel(
+            func,
+            LaunchConfig::from_num_thread_for_max_occupancy(din.n as u32, func, 0, 0).unwrap(),
+        )
         .unwrap();
 }
 
@@ -53,7 +56,10 @@ pub fn shift_array_right(stream: cu::CUstream, din: &CuVec<u32>) -> CuVec<u32> {
         builder.arg_dptr(din.dptr);
         builder.arg_dptr(dout.dptr);
         builder
-            .launch_kernel(func, LaunchConfig::for_num_elems(din.n as u32))
+            .launch_kernel(
+                func,
+                LaunchConfig::from_num_thread_for_max_occupancy(din.n as u32, func, 0, 0).unwrap(),
+            )
             .unwrap();
     }
     cuda_check!(cu::cuMemsetD32_v2(dout.dptr, 0, 1)).unwrap();
@@ -100,7 +106,10 @@ pub fn permute(
     builder.arg_dptr(new2old.dptr);
     builder.arg_dptr(old2data.dptr);
     builder
-        .launch_kernel(func, LaunchConfig::for_num_elems(num_new as u32))
+        .launch_kernel(
+            func,
+            LaunchConfig::from_num_thread_for_max_occupancy(num_new as u32, func, 0, 0).unwrap(),
+        )
         .unwrap();
 }
 
@@ -153,7 +162,10 @@ pub fn fill_f32(stream: cu::CUstream, elem2val: &CuVec<f32>, val: f32) {
     builder.arg_dptr(elem2val.dptr);
     builder.arg_f32(val);
     builder
-        .launch_kernel(func, LaunchConfig::for_num_elems(num_elem as u32))
+        .launch_kernel(
+            func,
+            LaunchConfig::from_num_thread_for_max_occupancy(num_elem as u32, func, 0, 0).unwrap(),
+        )
         .unwrap();
 }
 
@@ -165,8 +177,8 @@ pub fn compaction_u32(
 ) -> CuVec<u32> {
     let num_idx = idx2flag.n - 1; // because of the prefix_sum, `idx2flag` should have one additional element at the end
     assert_eq!(idx2val.n, num_idx * num_dim);
-    let idx2jdx = CuVec::<u32>::alloc_zeros(num_idx as usize + 1, stream).unwrap();
-    crate::cumsum::exclusive_scan(stream, &idx2flag, &idx2jdx);
+    let idx2jdx = CuVec::<u32>::alloc_zeros(num_idx + 1, stream).unwrap();
+    crate::cumsum::exclusive_scan(stream, idx2flag, &idx2jdx);
     let num_jdx = idx2jdx.last().unwrap();
     let jdx2val = CuVec::<u32>::alloc_zeros(num_jdx as usize * num_dim, stream).unwrap();
     let func = crate::cache_func::get_function_cached(
@@ -182,7 +194,10 @@ pub fn compaction_u32(
     builder.arg_dptr(idx2val.dptr);
     builder.arg_dptr(jdx2val.dptr);
     builder
-        .launch_kernel(func, LaunchConfig::for_num_elems(num_idx as u32))
+        .launch_kernel(
+            func,
+            LaunchConfig::from_num_thread_for_max_occupancy(num_idx as u32, func, 0, 0).unwrap(),
+        )
         .unwrap();
     jdx2val
 }

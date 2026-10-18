@@ -25,7 +25,7 @@ fn block_sums(
     let mut grid_size = num_elem / max_elems_per_block;
 
     // Take advantage of the fact that integer division drops the decimals
-    if num_elem % max_elems_per_block != 0 {
+    if !num_elem.is_multiple_of(max_elems_per_block) {
         grid_size += 1;
     }
 

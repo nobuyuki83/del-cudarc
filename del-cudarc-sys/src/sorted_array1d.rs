@@ -67,7 +67,11 @@ pub fn unique(stream: cu::CUstream, idx2val: &CuVec<u32>, idx2jdx: &CuVec<u32>) 
         builder.arg_dptr(idx2val.dptr);
         builder.arg_dptr(idx2isdiff.dptr);
         builder
-            .launch_kernel(func, LaunchConfig::for_num_elems(num_idx as u32))
+            .launch_kernel(
+                func,
+                LaunchConfig::from_num_thread_for_max_occupancy(num_idx as u32, func, 0, 0)
+                    .unwrap(),
+            )
             .unwrap();
     }
     crate::cumsum::exclusive_scan(stream, &idx2isdiff, idx2jdx);
